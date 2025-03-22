@@ -1,0 +1,51 @@
+.admin-dashboard {
+    padding-top: 80px !important;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    background-color: #222;
+    color: #f0f0f0;
+    border-radius: 5px;
+  }
+  
+  .admin-dashboard h1 {
+    font-family: 'Georgia', serif;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #d4af37;
+  }
+  
+  .admin-nav {
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #555;
+    padding-bottom: 0.5rem;
+  }
+  
+  .admin-nav ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .admin-nav li {
+    margin: 0;
+  }
+  
+  .admin-nav a {
+    color: #f0f0f0;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    transition: color 0.3s ease;
+  }
+  
+  .admin-nav a:hover {
+    color: #d4af37;
+  }
+  
+  .admin-content {
+    background-color: #222;
+    padding: 1rem;
+    border-radius: 5px;
+  }
+  

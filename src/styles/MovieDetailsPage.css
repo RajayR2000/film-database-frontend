@@ -1,0 +1,105 @@
+.movie-details-page {
+    padding-top: 80px !important;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .hero-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+  
+  .hero-poster {
+    width: 300px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #d4af37;
+  }
+  
+  .hero-info {
+    flex: 1;
+  }
+  
+  .hero-title {
+    font-family: 'Georgia', serif;
+    font-size: 2rem;
+    margin: 0;
+  }
+  
+  .hero-year {
+    font-size: 1.25rem;
+    color: #d4af37;
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid #555;
+    margin-bottom: 1rem;
+  }
+  
+  .tab-button {
+    background: none;
+    border: none;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #f0f0f0;
+    position: relative;
+    transition: color 0.3s ease;
+  }
+  
+  .tab-button:hover {
+    color: #d4af37;
+  }
+  
+  .tab-button.active {
+    color: #d4af37;
+  }
+  
+  .tab-button.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 3px;
+    background-color: #d4af37;
+    border-radius: 2px;
+    animation: underline 0.3s ease;
+  }
+  
+  @keyframes underline {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+  
+  .tab-panel {
+    background-color: #222;
+    padding: 1rem;
+    border-radius: 5px;
+  }
+  
+  .tab-content p {
+    margin: 0.5rem 0;
+  }
+  
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .gallery-image {
+    width: 100%;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  
+  .gallery-image:hover {
+    transform: scale(1.05);
+  }
+  

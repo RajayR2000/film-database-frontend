@@ -1,0 +1,72 @@
+.film-page-container {
+    padding: 30px;
+    font-family: 'Lora', serif; /* A serif font for a more elegant feel */
+    background-color: #fefefe; /* Very light grey background */
+  }
+  
+  .film-header {
+    text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 2px solid #eee; /* Light grey border under header */
+    padding-bottom: 20px;
+  }
+  
+  .film-title {
+    font-size: 2.8em;
+    color: #2d3436; /* Dark Charcoal */
+    margin-bottom: 10px;
+  }
+  
+  .film-overview {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fff; /* White background for overview section */
+    border-radius: 8px;
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.08); /* Softer shadow */
+  }
+  
+  .film-description {
+    color: #444; /* Slightly darker grey for description */
+    font-size: 1.1em;
+    line-height: 1.6;
+  }
+  
+  .film-tabs-placeholder {
+    /* Styles for the tabs area */
+  }
+  
+  .tab-navigation ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex; /* Use flexbox for tab buttons */
+    justify-content: flex-start; /* Align tabs to the left */
+    border-bottom: 1px solid #ddd; /* Separator line for tabs */
+  }
+  
+  .tab-navigation li {
+    margin-right: 15px;
+  }
+  
+  .tab-navigation button {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #555;
+    transition: color 0.2s ease-in-out;
+  }
+  
+  .tab-navigation button:hover,
+  .tab-navigation button:focus {
+    color: #007bff; /* Highlight color on hover/focus */
+    outline: none; /* Remove default focus outline */
+  }
+  
+  .tab-content {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 0 0 8px 8px; /* Rounded corners only at the bottom */
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.08);
+  }
