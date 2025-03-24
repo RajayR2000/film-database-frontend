@@ -5,10 +5,18 @@ import '../styles/Navbar.css';
 interface NavbarProps {
   darkMode: boolean;
   setDarkMode: (mode: boolean) => void;
+  isLoggedIn: boolean;
+  setIsLoggedIn: (loggedIn: boolean) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ darkMode, setDarkMode }) => {
+const Navbar: React.FC<NavbarProps> = ({ darkMode, setDarkMode, isLoggedIn, setIsLoggedIn }) => {
   const toggleDarkMode = () => setDarkMode(!darkMode);
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    setIsLoggedIn(false);
+    // Optionally, you can force a re-render or trigger any necessary cleanup.
+  };
 
   return (
     <nav className="navbar">
@@ -16,9 +24,7 @@ const Navbar: React.FC<NavbarProps> = ({ darkMode, setDarkMode }) => {
         <Link to="/">Early African Films</Link>
       </div>
       <ul className="navbar-menu">
-        <li>
-          <Link to="/">Home</Link>
-        </li>
+        <li><Link to="/">Home</Link></li>
         <li className="dropdown">
           <Link to="/browse">Browse Movies</Link>
           <div className="dropdown-content">
@@ -27,19 +33,18 @@ const Navbar: React.FC<NavbarProps> = ({ darkMode, setDarkMode }) => {
             <Link to="/browse/director">Director</Link>
           </div>
         </li>
-        <li>
-          <Link to="/about">About</Link>
-        </li>
-        <li>
-          <Link to="/contact">Contact</Link>
-        </li>
-        <li>
-          <Link to="/admin">Admin</Link>
-        </li>
+        <li><Link to="/about">About</Link></li>
+        <li><Link to="/contact">Contact</Link></li>
+        <li><Link to="/admin">Admin</Link></li>
       </ul>
-      {/* <button className="dark-mode-toggle" onClick={toggleDarkMode}>
-        {darkMode ? 'Light Mode' : 'Dark Mode'}
-      </button> */}
+      <div className="navbar-controls">
+      
+        {isLoggedIn && (
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        )}
+      </div>
     </nav>
   );
 };

@@ -10,6 +10,7 @@ import AddFilmForm from './components/AddFilmForm';
 
 const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('accessToken'));
 
   useEffect(() => {
     if (darkMode) {
@@ -21,13 +22,12 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
+      <Navbar darkMode={darkMode} setDarkMode={setDarkMode} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/movie/:id" element={<MovieDetailsPage />} />
+        <Route path="/movie/:id" element={<MovieDetailsPage isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/admin" element={<AdminDashboard />}>
           <Route path="add-film" element={<AddFilmForm />} />
-          {/* You can add more admin routes here */}
         </Route>
       </Routes>
     </Router>

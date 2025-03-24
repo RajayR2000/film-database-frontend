@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
+import LoginModal from './LoginModal';
 
-// Define an interface for all the detailed data
 interface MovieDetails {
   id: string;
   title: string;
   year: number;
   posterUrl: string;
   synopsis: string;
-  // Production info displayed in the "Production" tab:
   production: {
     director: string;
     producer: string;
@@ -17,13 +16,11 @@ interface MovieDetails {
     cinematography: string;
     runtime: string;
   };
-  // Screening info:
   screenings: {
     premieres: string;
     pastScreenings: string;
     upcomingEvents: string;
   };
-  // Additional detailed data:
   authors: { role: string; name: string; comment?: string }[];
   productionTeam: { department: string; name: string; role?: string; comment?: string }[];
   equipment: { equipment_name: string; description?: string; comment?: string }[];
@@ -37,58 +34,86 @@ interface MovieDetails {
   gallery: string[];
 }
 
-const MovieDetailsPage: React.FC = () => {
+interface MovieDetailsPageProps {
+  isLoggedIn: boolean;
+  setIsLoggedIn: (loggedIn: boolean) => void;
+}
+
+const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLoggedIn }) => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [activeTab, setActiveTab] = useState('production');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const fetchMovieDetails = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`http://localhost:3001/films/${id}`, {
+        headers: {
+          Authorization: localStorage.getItem('accessToken')
+            ? `Bearer ${localStorage.getItem('accessToken')}`
+            : '',
+        },
+      });
+      if (res.status === 401) {
+        setShowLoginModal(true);
+        setMovie(null);
+        return;
+      } else if (!res.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await res.json();
+      const fetchedMovie: MovieDetails = {
+        id: data.film.film_id.toString(),
+        title: data.film.title,
+        year: data.film.release_year,
+        posterUrl: data.film.posterUrl || `https://picsum.photos/seed/movie-${data.film.film_id}/300/450`,
+        synopsis: data.film.synopsis,
+        production: {
+          director: data.film.director || (data.authors?.find((a: any) => a.role === 'Filmmaker')?.name || 'Unknown'),
+          producer: data.film.producer || (data.authors?.find((a: any) => a.role === 'Executive Producer')?.name || 'Unknown'),
+          cast: data.actors ? data.actors.map((a: any) => a.actor_name) : [],
+          cinematography: data.film.cinematography || '',
+          runtime: data.film.runtime || '',
+        },
+        screenings: {
+          premieres: data.productionDetails?.premieres || '',
+          pastScreenings: data.productionDetails?.pastScreenings || '',
+          upcomingEvents: data.productionDetails?.upcomingEvents || '',
+        },
+        authors: data.authors || [],
+        productionTeam: data.productionTeam || [],
+        equipment: data.equipment || [],
+        institutionalInfo: data.institutionalInfo || {},
+        documents: data.documents || [],
+        gallery: data.film.gallery || [],
+      };
+      setMovie(fetchedMovie);
+    } catch (error: any) {
+      console.error('Error fetching film details:', error.message);
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (!id) return;
-
-    const fetchMovieDetails = async () => {
-      try {
-        const res = await fetch(`http://localhost:3000/films/${id}`);
-        if (!res.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await res.json();
-        // Map backend response to our MovieDetails structure.
-        const fetchedMovie: MovieDetails = {
-          id: data.film.film_id.toString(),
-          title: data.film.title,
-          year: data.film.release_year,
-          posterUrl: data.film.posterUrl || `https://picsum.photos/seed/movie-${data.film.film_id}/300/450`,
-          synopsis: data.film.synopsis,
-          production: {
-            director: data.film.director || (data.authors?.find((a: any) => a.role === 'Filmmaker')?.name || 'Unknown'),
-            producer: data.film.producer || (data.authors?.find((a: any) => a.role === 'Executive Producer')?.name || 'Unknown'),
-            cast: data.actors ? data.actors.map((a: any) => a.actor_name) : [],
-            cinematography: data.film.cinematography || '',
-            runtime: data.film.runtime || '',
-          },
-          screenings: {
-            premieres: data.productionDetails?.premieres || '',
-            pastScreenings: data.productionDetails?.pastScreenings || '',
-            upcomingEvents: data.productionDetails?.upcomingEvents || '',
-          },
-          authors: data.authors || [],
-          productionTeam: data.productionTeam || [],
-          equipment: data.equipment || [],
-          institutionalInfo: data.institutionalInfo || {},
-          documents: data.documents || [],
-          gallery: data.film.gallery || [],
-        };
-        setMovie(fetchedMovie);
-      } catch (error: any) {
-        console.error('Error fetching film details:', error.message);
-      }
-    };
-
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
     fetchMovieDetails();
-  }, [id]);
+  }, [id, isLoggedIn, fetchMovieDetails]);
+
+  const handleLoginModalClose = () => {
+    setShowLoginModal(false);
+    // Re-check login state (it should be true now if login was successful)
+    setIsLoggedIn(!!localStorage.getItem('accessToken'));
+    fetchMovieDetails();
+  };
 
   if (!id) {
     return <div>Error: No movie ID provided</div>;
+  }
+  if (showLoginModal || !isLoggedIn) {
+    return <LoginModal onClose={handleLoginModalClose} />;
   }
   if (!movie) return <div>Loading...</div>;
 
@@ -209,52 +234,50 @@ const MovieDetailsPage: React.FC = () => {
         </div>
       </div>
       <div className="tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'production' ? 'active' : ''}`}
           onClick={() => setActiveTab('production')}
         >
           Production
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'screening' ? 'active' : ''}`}
           onClick={() => setActiveTab('screening')}
         >
           Screenings
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`}
           onClick={() => setActiveTab('synopsis')}
         >
           Synopsis
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
           onClick={() => setActiveTab('gallery')}
         >
           Gallery
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'team' ? 'active' : ''}`}
           onClick={() => setActiveTab('team')}
         >
           Production Team
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`}
           onClick={() => setActiveTab('institution')}
         >
           Institutions & Finance
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`}
           onClick={() => setActiveTab('documents')}
         >
           Documents
         </button>
       </div>
-      <div className="tab-panel">
-        {renderTabContent()}
-      </div>
+      <div className="tab-panel">{renderTabContent()}</div>
     </div>
   );
 };
