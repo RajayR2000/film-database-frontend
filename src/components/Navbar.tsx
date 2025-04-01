@@ -54,12 +54,10 @@ const Navbar: React.FC<NavbarProps> = ({
           </li>
         )}
       </ul>
-      <div className="navbar-controls">
-        <button className="dark-mode-toggle" onClick={toggleDarkMode}>
-          {darkMode ? 'Light Mode' : 'Dark Mode'}
-        </button>
+      <div className="navbar-controls navbar-logout">
+       
         {isLoggedIn && (
-          <button onClick={handleLogout} className="logout-button">
+          <button onClick={handleLogout} className="dark-mode-toggle" >
             Logout
           </button>
         )}

@@ -72,4 +72,6 @@
     background-color: #d4af37;
     color: #111;
   }
-  
+  .navbar-logout {
+    margin-right: 5%
+  }

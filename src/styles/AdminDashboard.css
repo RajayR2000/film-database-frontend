@@ -13,7 +13,7 @@
 
 .admin-dashboard h1 {
   font-family: 'Georgia', serif;
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin-bottom: 1rem;
   color: #d4af37;
   text-align: center;
@@ -29,7 +29,7 @@
 .admin-tabs button {
   background: none;
   border: 2px solid #d4af37;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
   border-radius: 5px;
   color: #f0f0f0;
   font-size: 1rem;
@@ -69,6 +69,25 @@
   gap: 1rem;
 }
 
+.admin-form fieldset {
+  border: 1px solid #555;
+  border-radius: 5px;
+  padding: 1rem;
+}
+
+.admin-form legend {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #d4af37;
+  padding: 0 0.5rem;
+}
+
+.admin-form label {
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+  color: #f0f0f0;
+}
+
 .admin-form input,
 .admin-form textarea {
   padding: 0.75rem;
@@ -78,6 +97,7 @@
   color: #f0f0f0;
   font-size: 1rem;
   transition: border 0.3s ease;
+  width: 100%;
 }
 
 .admin-form input:focus,
@@ -91,11 +111,12 @@
   border: none;
   padding: 0.75rem;
   border-radius: 5px;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: #222;
   cursor: pointer;
   transition: background 0.3s ease;
+  align-self: flex-end;
 }
 
 .submit-button:hover {
@@ -119,7 +140,7 @@
 .film-list li button {
   background-color: #d4af37;
   border: none;
-  padding: 0.5rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 5px;
   font-size: 0.9rem;
   cursor: pointer;
