@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
+import movie_poster from '../assets/movie_poster.jpg';
 
 interface MovieDetails {
   id: string;
@@ -42,7 +43,7 @@ interface MovieDetailsPageProps {
 const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLoggedIn }) => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
-  const [activeTab, setActiveTab] = useState('production');
+  const [activeTab, setActiveTab] = useState('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const fetchMovieDetails = useCallback(async () => {
@@ -67,7 +68,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         id: data.film.film_id.toString(),
         title: data.film.title,
         year: data.film.release_year,
-        posterUrl: data.film.posterUrl || `https://picsum.photos/seed/movie-${data.film.film_id}/300/450`,
+        posterUrl: data.film.posterUrl || movie_poster,
         synopsis: data.film.synopsis,
         production: {
           director: data.film.director || (data.authors?.find((a: any) => a.role === 'Filmmaker')?.name || 'Unknown'),
@@ -234,6 +235,12 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         </div>
       </div>
       <div className="tabs">
+      <button
+          className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`}
+          onClick={() => setActiveTab('synopsis')}
+        >
+          Synopsis
+          </button>
         <button
           className={`tab-button ${activeTab === 'production' ? 'active' : ''}`}
           onClick={() => setActiveTab('production')}
@@ -247,12 +254,6 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           Screenings
         </button>
         <button
-          className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`}
-          onClick={() => setActiveTab('synopsis')}
-        >
-          Synopsis
-        </button>
-        <button
           className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
           onClick={() => setActiveTab('gallery')}
         >
@@ -262,7 +263,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           className={`tab-button ${activeTab === 'team' ? 'active' : ''}`}
           onClick={() => setActiveTab('team')}
         >
-          Production Team
+          Production
         </button>
         <button
           className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`}

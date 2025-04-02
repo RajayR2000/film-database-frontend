@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/MovieCard.css';
+import movie_poster from '../assets/movie_poster.jpg';
 
 interface Movie {
   id: string;
@@ -22,7 +23,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
 
   return (
     <div className="movie-card" onClick={handleClick}>
-      <img src={movie.posterUrl} alt={movie.title} className="movie-poster" />
+      <img src={movie_poster} alt={movie.title} className="movie-poster" />
       <div className="movie-overlay">
         <h3 className="movie-title">{movie.title}</h3>
         <p className="movie-year">{movie.year}</p>
