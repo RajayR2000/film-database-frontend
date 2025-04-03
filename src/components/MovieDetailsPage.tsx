@@ -42,6 +42,7 @@ interface MovieDetails {
   year: number;
   posterUrl: string;
   synopsis: string;
+  // Production credits (director, producer, cast, runtime) are now used only for basic info.
   production: {
     director: string;
     producer: string;
@@ -49,13 +50,15 @@ interface MovieDetails {
     runtime: string;
   };
   productionDetails: ProductionDetails;
-  screenings: Screening[];
+  // Authors array: roles like Screenwriter, Filmmaker, Executive Producer.
   authors: { role: string; name: string; comment?: string }[];
+  // Production team is now displayed grouped by department.
   productionTeam: { department: string; name: string; role?: string; comment?: string }[];
   equipment: { equipment_name: string; description?: string; comment?: string }[];
   institutionalInfo: InstitutionalInfo;
   documents: { document_type: string; file_url: string; comment?: string }[];
   gallery: string[];
+  screenings: Screening[];
 }
 
 interface MovieDetailsPageProps {
@@ -157,49 +160,179 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'production':
+      case 'synopsis':
         return (
           <div className="tab-content">
-            <h3>Production Credits</h3>
-            <p><strong>Director:</strong> {movie.production.director}</p>
-            <p><strong>Producer:</strong> {movie.production.producer}</p>
-            <p><strong>Runtime:</strong> {movie.production.runtime}</p>
-            <h4>Cast</h4>
-            {movie.production.cast.length ? (
+            <p>{movie.synopsis}</p>
+          </div>
+        );
+      case 'filmProduction':
+        return (
+          <div className="tab-content">
+            <h2>Film Production</h2>
+            {/* Authors Section */}
+            <section>
+              <h3>Authors</h3>
+              {movie.authors.length ? (
+                <ul>
+                  {movie.authors.map((author, idx) => (
+                    <li key={idx}>
+                      <p>
+                        <strong>{author.role}:</strong> {author.name}
+                      </p>
+                      {author.comment && (
+                        <p>
+                          <strong>Comment:</strong> {author.comment}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No author information available.</p>
+              )}
+            </section>
+            {/* Production Team Section */}
+            <section>
+              <h3>Production Team</h3>
+              {movie.productionTeam.length ? (
+                Object.entries(
+                  movie.productionTeam.reduce((groups, member) => {
+                    if (!groups[member.department]) {
+                      groups[member.department] = [];
+                    }
+                    groups[member.department].push(member);
+                    return groups;
+                  }, {} as { [department: string]: typeof movie.productionTeam })
+                ).map(([department, members]) => (
+                  <div key={department}>
+                    <h4>{department}</h4>
+                    <ul>
+                      {members.map((member, idx) => (
+                        <li key={idx}>
+                          <p>
+                            <strong>Name:</strong> {member.name}
+                          </p>
+                          {member.role && (
+                            <p>
+                              <strong>Role:</strong> {member.role}
+                            </p>
+                          )}
+                          {member.comment && (
+                            <p>
+                              <strong>Comment:</strong> {member.comment}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              ) : (
+                <p>No production team information available.</p>
+              )}
+            </section>
+            {/* Actors Section */}
+            <section>
+              <h3>Actors</h3>
+              {movie.production.cast.length ? (
+                <ul>
+                  {movie.production.cast.map((actor, idx) => (
+                    <li key={idx}>
+                      <p>
+                        <strong>Actor:</strong> {actor.actorName}
+                      </p>
+                      {actor.characterName && (
+                        <p>
+                          <strong>Character:</strong> {actor.characterName}
+                        </p>
+                      )}
+                      {actor.comment && (
+                        <p>
+                          <strong>Comment:</strong> {actor.comment}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No actor information available.</p>
+              )}
+            </section>
+            {/* Film Equipment Section */}
+            <section>
+              <h3>Film Equipment</h3>
+              {movie.equipment.length ? (
               <ul>
-                {movie.production.cast.map((actor, idx) => (
+                {movie.equipment.map((eq, idx) => (
                   <li key={idx}>
-                    <p><strong>Actor:</strong> {actor.actorName}</p>
-                    {actor.characterName && (
-                      <p><strong>Character:</strong> {actor.characterName}</p>
+                    <p>
+                      <strong>Equipment Name:</strong> {eq.equipment_name}
+                    </p>
+                    {eq.description && (
+                      <p>
+                        <strong>Description:</strong> {eq.description}
+                      </p>
                     )}
-                    {actor.comment && (
-                      <p><strong>Comment:</strong> {actor.comment}</p>
+                    {eq.comment && (
+                      <p>
+                        <strong>Comment:</strong> {eq.comment}
+                      </p>
                     )}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No cast details available.</p>
+              <p>No equipment data available.</p>
             )}
-            <h3>Production Details</h3>
+            </section>
+            {/* Production Date & Place Section */}
+            <section>
+              <h3>Production Date & Place</h3>
+              <p>
+                <strong>Time Frame:</strong>{' '}
+                {movie.productionDetails.productionTimeframe || 'N/A'}
+              </p>
+              {/* <p>
+                <strong>Shooting Location ID:</strong>{' '}
+                {movie.productionDetails.shootingLocationId || 'N/A'}
+              </p> */}
+              <p>
+                <strong>Post Production Studio:</strong>{' '}
+                {movie.productionDetails.postProductionStudio || 'N/A'}
+              </p>
+              <p>
+                <strong>Production Comments:</strong>{' '}
+                {movie.productionDetails.productionComments || 'N/A'}
+              </p>
+            </section>
+          </div>
+        );
+      case 'institution':
+        return (
+          <div className="tab-content">
+            <h2>Institutional & Financial Info</h2>
             <p>
-              <strong>Post Production Studio:</strong> {movie.productionDetails.postProductionStudio}
+              <strong>Production Company:</strong>{' '}
+              {movie.institutionalInfo.productionCompany}
             </p>
             <p>
-              <strong>Production Comments:</strong> {movie.productionDetails.productionComments}
+              <strong>Funding Company:</strong>{' '}
+              {movie.institutionalInfo.fundingCompany}
             </p>
             <p>
-              <strong>Production Timeframe:</strong> {movie.productionDetails.productionTimeframe}
+              <strong>Funding Comment:</strong>{' '}
+              {movie.institutionalInfo.fundingComment}
             </p>
-            {/* <p>
-              <strong>Shooting Location ID:</strong> {movie.productionDetails.shootingLocationId}
-            </p> */}
+            <p>
+              <strong>Source:</strong> {movie.institutionalInfo.source}
+            </p>
           </div>
         );
       case 'screening':
         return (
           <div className="tab-content">
+            <h2>Film Screenings</h2>
             {movie.screenings.length ? (
               <ul>
                 {movie.screenings.map((screening) => (
@@ -227,155 +360,20 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
             )}
           </div>
         );
-      case 'synopsis':
-        return (
-          <div className="tab-content">
-            <p>{movie.synopsis}</p>
-          </div>
-        );
       case 'gallery':
         return (
           <div className="tab-content gallery">
             {movie.gallery.length ? (
               movie.gallery.map((img: string, index: number) => (
-                <img key={index} src={img} alt={`Still ${index + 1}`} className="gallery-image" />
+                <img
+                  key={index}
+                  src={img}
+                  alt={`Still ${index + 1}`}
+                  className="gallery-image"
+                />
               ))
             ) : (
               <p>No gallery images available.</p>
-            )}
-          </div>
-        );
-      case 'team':
-        return (
-          <div className="tab-content">
-            <h3>Film Authors</h3>
-            {movie.authors.length ? (
-              <ul>
-                {movie.authors.map((author, idx) => (
-                  <li key={idx}>
-                    <p>
-                      <strong>Role:</strong> {author.role}
-                    </p>
-                    <p>
-                      <strong>Name:</strong> {author.name}
-                    </p>
-                    {author.comment && (
-                      <p>
-                        <strong>Comment:</strong> {author.comment}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No film authors available.</p>
-            )}
-            <h3>Production Team</h3>
-            {movie.productionTeam.length ? (
-              // Group team members by department.
-              Object.entries(
-                movie.productionTeam.reduce((groups, member) => {
-                  if (!groups[member.department]) {
-                    groups[member.department] = [];
-                  }
-                  groups[member.department].push(member);
-                  return groups;
-                }, {} as { [department: string]: typeof movie.productionTeam })
-              ).map(([department, members]) => (
-                <div key={department}>
-                  <h4>{department}</h4>
-                  <ul>
-                    {members.map((member, idx) => (
-                      <li key={idx}>
-                        <p>
-                          <strong>Name:</strong> {member.name}
-                        </p>
-                        {member.role && (
-                          <p>
-                            <strong>Role:</strong> {member.role}
-                          </p>
-                        )}
-                        {member.comment && (
-                          <p>
-                            <strong>Comment:</strong> {member.comment}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            ) : (
-              <p>No production team data available.</p>
-            )}
-            <h3>Equipment</h3>
-            {movie.equipment.length ? (
-              <ul>
-                {movie.equipment.map((eq, idx) => (
-                  <li key={idx}>
-                    <p>
-                      <strong>Equipment Name:</strong> {eq.equipment_name}
-                    </p>
-                    {eq.description && (
-                      <p>
-                        <strong>Description:</strong> {eq.description}
-                      </p>
-                    )}
-                    {eq.comment && (
-                      <p>
-                        <strong>Comment:</strong> {eq.comment}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No equipment data available.</p>
-            )}
-          </div>
-        );
-      case 'institution':
-        return (
-          <div className="tab-content">
-            <p>
-              <strong>Production Company:</strong> {movie.institutionalInfo.productionCompany}
-            </p>
-            <p>
-              <strong>Funding Company:</strong> {movie.institutionalInfo.fundingCompany}
-            </p>
-            <p>
-              <strong>Funding Comment:</strong> {movie.institutionalInfo.fundingComment}
-            </p>
-            <p>
-              <strong>Source:</strong> {movie.institutionalInfo.source}
-            </p>
-          </div>
-        );
-      case 'documents':
-        return (
-          <div className="tab-content">
-            {movie.documents.length ? (
-              <ul>
-                {movie.documents.map((doc, idx) => (
-                  <li key={idx}>
-                    <p>
-                      <strong>Document Type:</strong> {doc.document_type}
-                    </p>
-                    <p>
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                        View Document
-                      </a>
-                    </p>
-                    {doc.comment && (
-                      <p>
-                        <strong>Comment:</strong> {doc.comment}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No documents available.</p>
             )}
           </div>
         );
@@ -394,26 +392,35 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         </div>
       </div>
       <div className="tabs">
-        <button className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`} onClick={() => setActiveTab('synopsis')}>
+        <button
+          className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`}
+          onClick={() => setActiveTab('synopsis')}
+        >
           Synopsis
         </button>
-        <button className={`tab-button ${activeTab === 'production' ? 'active' : ''}`} onClick={() => setActiveTab('production')}>
-          Production
+        <button
+          className={`tab-button ${activeTab === 'filmProduction' ? 'active' : ''}`}
+          onClick={() => setActiveTab('filmProduction')}
+        >
+          Film Production
         </button>
-        <button className={`tab-button ${activeTab === 'screening' ? 'active' : ''}`} onClick={() => setActiveTab('screening')}>
-          Screenings
+        <button
+          className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`}
+          onClick={() => setActiveTab('institution')}
+        >
+          Institutional & Financial
         </button>
-        <button className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => setActiveTab('gallery')}>
+        <button
+          className={`tab-button ${activeTab === 'screening' ? 'active' : ''}`}
+          onClick={() => setActiveTab('screening')}
+        >
+          Film Screenings
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+          onClick={() => setActiveTab('gallery')}
+        >
           Gallery
-        </button>
-        <button className={`tab-button ${activeTab === 'team' ? 'active' : ''}`} onClick={() => setActiveTab('team')}>
-          Crew & Equipment
-        </button>
-        <button className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`} onClick={() => setActiveTab('institution')}>
-          Institutions & Finance
-        </button>
-        <button className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>
-          Documents
         </button>
       </div>
       <div className="tab-panel">{renderTabContent()}</div>
