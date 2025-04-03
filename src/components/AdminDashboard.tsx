@@ -10,6 +10,7 @@ import {
 } from 'formik';
 import * as Yup from 'yup';
 import '../styles/AdminDashboard.css';
+import { apiFetch } from '../apifetch';
 
 // Interface for Screening objects.
 export interface Screening {
@@ -487,7 +488,7 @@ const AdminDashboard: React.FC = () => {
   // Load films list for update mode.
   const loadFilmsList = async () => {
     try {
-      const res = await fetch('http://localhost:3001/films', {
+      const res = await apiFetch('http://localhost:3001/films', {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -508,7 +509,7 @@ const AdminDashboard: React.FC = () => {
   // Load film data for update.
   const loadFilmData = async (filmId: number) => {
     try {
-      const res = await fetch(`http://localhost:3001/films/${filmId}`, {
+      const res = await apiFetch(`http://localhost:3001/films/${filmId}`, {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -586,7 +587,7 @@ const AdminDashboard: React.FC = () => {
 
   // When switching to update mode, load films list.
   useEffect(() => {
-    if (activeTab === 'update') {
+    if (activeTab === 'update' || activeTab === 'delete') {
       loadFilmsList();
     }
   }, [activeTab]);
@@ -597,7 +598,7 @@ const AdminDashboard: React.FC = () => {
     actions: FormikHelpers<FilmFormData>
   ) => {
     try {
-      const res = await fetch('http://localhost:3001/films', {
+      const res = await apiFetch('http://localhost:3001/films', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -627,7 +628,7 @@ const AdminDashboard: React.FC = () => {
     actions: FormikHelpers<FilmFormData>
   ) => {
     try {
-      const res = await fetch(`http://localhost:3001/films/${selectedFilmId}`, {
+      const res = await apiFetch(`http://localhost:3001/films/${selectedFilmId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -650,29 +651,7 @@ const AdminDashboard: React.FC = () => {
       actions.setSubmitting(false);
     }
   };
-  const handleDelete = async (filmId: number) => {
-    if (window.confirm("Are you sure you want to delete this film?")) {
-      try {
-        const res = await fetch(`http://localhost:3001/films/${filmId}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: localStorage.getItem('accessToken')
-              ? `Bearer ${localStorage.getItem('accessToken')}`
-              : '',
-          },
-        });
-        if (!res.ok) {
-          setMessage('Failed to delete film');
-          return;
-        }
-        setMessage('Film deleted successfully!');
-        // Reload the films list after deletion.
-        loadFilmsList();
-      } catch (error: any) {
-        setMessage('Error deleting film: ' + error.message);
-      }
-    }
-  };
+
   
   return (
     <div className="admin-dashboard">
@@ -791,7 +770,7 @@ const AdminDashboard: React.FC = () => {
               onClick={async () => {
                 if (filmIdToDelete !== null) {
                   try {
-                    const res = await fetch(`http://localhost:3001/films/${filmIdToDelete}`, {
+                    const res = await apiFetch(`http://localhost:3001/films/${filmIdToDelete}`, {
                       method: 'DELETE',
                       headers: {
                         Authorization: localStorage.getItem('accessToken')
