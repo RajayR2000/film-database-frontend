@@ -192,9 +192,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
             <p>
               <strong>Production Timeframe:</strong> {movie.productionDetails.productionTimeframe}
             </p>
-            <p>
+            {/* <p>
               <strong>Shooting Location ID:</strong> {movie.productionDetails.shootingLocationId}
-            </p>
+            </p> */}
           </div>
         );
       case 'screening':
@@ -272,28 +272,39 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
             )}
             <h3>Production Team</h3>
             {movie.productionTeam.length ? (
-              <ul>
-                {movie.productionTeam.map((member, idx) => (
-                  <li key={idx}>
-                    <p>
-                      <strong>Department:</strong> {member.department}
-                    </p>
-                    <p>
-                      <strong>Name:</strong> {member.name}
-                    </p>
-                    {member.role && (
-                      <p>
-                        <strong>Role:</strong> {member.role}
-                      </p>
-                    )}
-                    {member.comment && (
-                      <p>
-                        <strong>Comment:</strong> {member.comment}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              // Group team members by department.
+              Object.entries(
+                movie.productionTeam.reduce((groups, member) => {
+                  if (!groups[member.department]) {
+                    groups[member.department] = [];
+                  }
+                  groups[member.department].push(member);
+                  return groups;
+                }, {} as { [department: string]: typeof movie.productionTeam })
+              ).map(([department, members]) => (
+                <div key={department}>
+                  <h4>{department}</h4>
+                  <ul>
+                    {members.map((member, idx) => (
+                      <li key={idx}>
+                        <p>
+                          <strong>Name:</strong> {member.name}
+                        </p>
+                        {member.role && (
+                          <p>
+                            <strong>Role:</strong> {member.role}
+                          </p>
+                        )}
+                        {member.comment && (
+                          <p>
+                            <strong>Comment:</strong> {member.comment}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
             ) : (
               <p>No production team data available.</p>
             )}

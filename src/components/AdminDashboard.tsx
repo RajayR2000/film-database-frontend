@@ -116,25 +116,24 @@ const initialValues: FilmFormData = {
 
 // Yup validation schema.
 const validationSchema = Yup.object().shape({
-  title: Yup.string().required('Title is required'),
+  title: Yup.string(),
   release_year: Yup.number()
-    .typeError('Release year must be a number')
-    .required('Release year is required'),
-  runtime: Yup.string().required('Runtime is required'),
-  synopsis: Yup.string().required('Synopsis is required'),
+    .typeError('Release year must be a number'),
+  runtime: Yup.string(),
+  synopsis: Yup.string(),
   productionTeam: Yup.array().of(
     Yup.object().shape({
-      department: Yup.string().required('Department is required'),
-      name: Yup.string().required('Name is required'),
+      department: Yup.string(),
+      name: Yup.string(),
       role: Yup.string(),
       comment: Yup.string(),
     })
   ),
   screenings: Yup.array().of(
     Yup.object().shape({
-      screening_date: Yup.string().required('Screening date is required'),
-      location_id: Yup.string().required('Location ID is required'),
-      organizers: Yup.string().required('Organizers are required'),
+      screening_date: Yup.string(),
+      location_id: Yup.string(),
+      organizers: Yup.string(),
       format: Yup.string(),
       audience: Yup.string(),
       film_rights: Yup.string(),
