@@ -4,6 +4,12 @@ import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
 import movie_poster from '../assets/movie_poster.jpg';
 
+interface Actor {
+  actorName: string;
+  characterName?: string;
+  comment?: string;
+}
+
 interface Screening {
   screening_id: number;
   screening_date: string;
@@ -23,6 +29,13 @@ interface InstitutionalInfo {
   source: string;
 }
 
+interface ProductionDetails {
+  postProductionStudio: string;
+  productionComments: string;
+  productionTimeframe: string;
+  shootingLocationId: number;
+}
+
 interface MovieDetails {
   id: string;
   title: string;
@@ -32,9 +45,10 @@ interface MovieDetails {
   production: {
     director: string;
     producer: string;
-    cast: string[];
+    cast: Actor[];
     runtime: string;
   };
+  productionDetails: ProductionDetails;
   screenings: Screening[];
   authors: { role: string; name: string; comment?: string }[];
   productionTeam: { department: string; name: string; role?: string; comment?: string }[];
@@ -75,7 +89,6 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       const data = await res.json();
 
       // Map the backend response to our MovieDetails interface.
-      // Note: Adjust the mapping as needed if your backend schema changes.
       const fetchedMovie: MovieDetails = {
         id: data.film.film_id.toString(),
         title: data.film.title,
@@ -83,15 +96,23 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         posterUrl: data.film.posterUrl || movie_poster,
         synopsis: data.film.synopsis,
         production: {
-          // Use film.director if available; otherwise, fall back to the "Filmmaker" author
           director: data.film.director || (data.authors?.find((a: any) => a.role === 'Filmmaker')?.name || 'Unknown'),
-          // Use film.producer if available; otherwise, use "Executive Producer" from authors
           producer: data.film.producer || (data.authors?.find((a: any) => a.role === 'Executive Producer')?.name || 'Unknown'),
-          cast: data.actors ? data.actors.map((a: any) => a.actor_name) : [],
-          // If your film record doesn’t have cinematography, you can leave it empty or supply a default value.
+          cast: data.actors
+            ? data.actors.map((a: any) => ({
+                actorName: a.actor_name,
+                characterName: a.character_name,
+                comment: a.comment,
+              }))
+            : [],
           runtime: data.film.runtime || '',
         },
-        // Use the screenings array directly from backend
+        productionDetails: {
+          postProductionStudio: data.productionDetails?.post_production_studio || '',
+          productionComments: data.productionDetails?.production_comments || '',
+          productionTimeframe: data.productionDetails?.production_timeframe || '',
+          shootingLocationId: data.productionDetails?.shooting_location_id || 0,
+        },
         screenings: data.screenings || [],
         authors: data.authors || [],
         productionTeam: data.productionTeam || [],
@@ -103,7 +124,6 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           source: data.institutionalInfo?.source || 'N/A',
         },
         documents: data.documents || [],
-        // If gallery is not provided, fall back to an empty array.
         gallery: data.film.gallery || [],
       };
 
@@ -140,10 +160,41 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       case 'production':
         return (
           <div className="tab-content">
+            <h3>Production Credits</h3>
             <p><strong>Director:</strong> {movie.production.director}</p>
             <p><strong>Producer:</strong> {movie.production.producer}</p>
-            <p><strong>Cast:</strong> {movie.production.cast.join(', ')}</p>
             <p><strong>Runtime:</strong> {movie.production.runtime}</p>
+            <h4>Cast</h4>
+            {movie.production.cast.length ? (
+              <ul>
+                {movie.production.cast.map((actor, idx) => (
+                  <li key={idx}>
+                    <p><strong>Actor:</strong> {actor.actorName}</p>
+                    {actor.characterName && (
+                      <p><strong>Character:</strong> {actor.characterName}</p>
+                    )}
+                    {actor.comment && (
+                      <p><strong>Comment:</strong> {actor.comment}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No cast details available.</p>
+            )}
+            <h3>Production Details</h3>
+            <p>
+              <strong>Post Production Studio:</strong> {movie.productionDetails.postProductionStudio}
+            </p>
+            <p>
+              <strong>Production Comments:</strong> {movie.productionDetails.productionComments}
+            </p>
+            <p>
+              <strong>Production Timeframe:</strong> {movie.productionDetails.productionTimeframe}
+            </p>
+            <p>
+              <strong>Shooting Location ID:</strong> {movie.productionDetails.shootingLocationId}
+            </p>
           </div>
         );
       case 'screening':
@@ -153,9 +204,21 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               <ul>
                 {movie.screenings.map((screening) => (
                   <li key={screening.screening_id}>
-                    <strong>Date:</strong> {new Date(screening.screening_date).toLocaleDateString()} <br />
-                    <strong>Organizers:</strong> {screening.organizers} <br />
-                    <strong>Source:</strong> {screening.source}
+                    <p>
+                      <strong>Date:</strong>{' '}
+                      {new Date(screening.screening_date).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Organizers:</strong> {screening.organizers}
+                    </p>
+                    <p>
+                      <strong>Source:</strong> {screening.source}
+                    </p>
+                    {screening.comment && (
+                      <p>
+                        <strong>Comment:</strong> {screening.comment}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -190,7 +253,17 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               <ul>
                 {movie.authors.map((author, idx) => (
                   <li key={idx}>
-                    {author.role}: {author.name} {author.comment && `(${author.comment})`}
+                    <p>
+                      <strong>Role:</strong> {author.role}
+                    </p>
+                    <p>
+                      <strong>Name:</strong> {author.name}
+                    </p>
+                    {author.comment && (
+                      <p>
+                        <strong>Comment:</strong> {author.comment}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -202,8 +275,22 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               <ul>
                 {movie.productionTeam.map((member, idx) => (
                   <li key={idx}>
-                    {member.department}: {member.name} {member.role && `- ${member.role}`}
-                    {member.comment && ` (${member.comment})`}
+                    <p>
+                      <strong>Department:</strong> {member.department}
+                    </p>
+                    <p>
+                      <strong>Name:</strong> {member.name}
+                    </p>
+                    {member.role && (
+                      <p>
+                        <strong>Role:</strong> {member.role}
+                      </p>
+                    )}
+                    {member.comment && (
+                      <p>
+                        <strong>Comment:</strong> {member.comment}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -215,7 +302,19 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               <ul>
                 {movie.equipment.map((eq, idx) => (
                   <li key={idx}>
-                    {eq.equipment_name} {eq.description && `- ${eq.description}`} {eq.comment && `(${eq.comment})`}
+                    <p>
+                      <strong>Equipment Name:</strong> {eq.equipment_name}
+                    </p>
+                    {eq.description && (
+                      <p>
+                        <strong>Description:</strong> {eq.description}
+                      </p>
+                    )}
+                    {eq.comment && (
+                      <p>
+                        <strong>Comment:</strong> {eq.comment}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -227,10 +326,18 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       case 'institution':
         return (
           <div className="tab-content">
-            <p><strong>Production Company:</strong> {movie.institutionalInfo.productionCompany}</p>
-            <p><strong>Funding Company:</strong> {movie.institutionalInfo.fundingCompany}</p>
-            <p><strong>Funding Comment:</strong> {movie.institutionalInfo.fundingComment}</p>
-            <p><strong>Source:</strong> {movie.institutionalInfo.source}</p>
+            <p>
+              <strong>Production Company:</strong> {movie.institutionalInfo.productionCompany}
+            </p>
+            <p>
+              <strong>Funding Company:</strong> {movie.institutionalInfo.fundingCompany}
+            </p>
+            <p>
+              <strong>Funding Comment:</strong> {movie.institutionalInfo.fundingComment}
+            </p>
+            <p>
+              <strong>Source:</strong> {movie.institutionalInfo.source}
+            </p>
           </div>
         );
       case 'documents':
@@ -240,8 +347,19 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               <ul>
                 {movie.documents.map((doc, idx) => (
                   <li key={idx}>
-                    <strong>{doc.document_type}</strong>: <a href={doc.file_url} target="_blank" rel="noopener noreferrer">View Document</a>
-                    {doc.comment && ` - ${doc.comment}`}
+                    <p>
+                      <strong>Document Type:</strong> {doc.document_type}
+                    </p>
+                    <p>
+                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                        View Document
+                      </a>
+                    </p>
+                    {doc.comment && (
+                      <p>
+                        <strong>Comment:</strong> {doc.comment}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
