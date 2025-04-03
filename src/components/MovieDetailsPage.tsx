@@ -4,6 +4,25 @@ import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
 import movie_poster from '../assets/movie_poster.jpg';
 
+interface Screening {
+  screening_id: number;
+  screening_date: string;
+  organizers: string;
+  location_id: number;
+  comment: string | null;
+  source: string;
+  film_rights: string | null;
+  format: string | null;
+  audience: string | null;
+}
+
+interface InstitutionalInfo {
+  productionCompany: string;
+  fundingCompany: string;
+  fundingComment: string;
+  source: string;
+}
+
 interface MovieDetails {
   id: string;
   title: string;
@@ -14,23 +33,13 @@ interface MovieDetails {
     director: string;
     producer: string;
     cast: string[];
-    cinematography: string;
     runtime: string;
   };
-  screenings: {
-    premieres: string;
-    pastScreenings: string;
-    upcomingEvents: string;
-  };
+  screenings: Screening[];
   authors: { role: string; name: string; comment?: string }[];
   productionTeam: { department: string; name: string; role?: string; comment?: string }[];
   equipment: { equipment_name: string; description?: string; comment?: string }[];
-  institutionalInfo: {
-    productionCompany?: string;
-    fundingCompany?: string;
-    fundingComment?: string;
-    source?: string;
-  };
+  institutionalInfo: InstitutionalInfo;
   documents: { document_type: string; file_url: string; comment?: string }[];
   gallery: string[];
 }
@@ -64,6 +73,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         throw new Error('Network response was not ok');
       }
       const data = await res.json();
+
+      // Map the backend response to our MovieDetails interface.
+      // Note: Adjust the mapping as needed if your backend schema changes.
       const fetchedMovie: MovieDetails = {
         id: data.film.film_id.toString(),
         title: data.film.title,
@@ -71,24 +83,30 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         posterUrl: data.film.posterUrl || movie_poster,
         synopsis: data.film.synopsis,
         production: {
+          // Use film.director if available; otherwise, fall back to the "Filmmaker" author
           director: data.film.director || (data.authors?.find((a: any) => a.role === 'Filmmaker')?.name || 'Unknown'),
+          // Use film.producer if available; otherwise, use "Executive Producer" from authors
           producer: data.film.producer || (data.authors?.find((a: any) => a.role === 'Executive Producer')?.name || 'Unknown'),
           cast: data.actors ? data.actors.map((a: any) => a.actor_name) : [],
-          cinematography: data.film.cinematography || '',
+          // If your film record doesn’t have cinematography, you can leave it empty or supply a default value.
           runtime: data.film.runtime || '',
         },
-        screenings: {
-          premieres: data.productionDetails?.premieres || '',
-          pastScreenings: data.productionDetails?.pastScreenings || '',
-          upcomingEvents: data.productionDetails?.upcomingEvents || '',
-        },
+        // Use the screenings array directly from backend
+        screenings: data.screenings || [],
         authors: data.authors || [],
         productionTeam: data.productionTeam || [],
         equipment: data.equipment || [],
-        institutionalInfo: data.institutionalInfo || {},
+        institutionalInfo: {
+          productionCompany: data.institutionalInfo?.production_company || 'N/A',
+          fundingCompany: data.institutionalInfo?.funding_company || 'N/A',
+          fundingComment: data.institutionalInfo?.funding_comment || 'N/A',
+          source: data.institutionalInfo?.source || 'N/A',
+        },
         documents: data.documents || [],
+        // If gallery is not provided, fall back to an empty array.
         gallery: data.film.gallery || [],
       };
+
       setMovie(fetchedMovie);
     } catch (error: any) {
       console.error('Error fetching film details:', error.message);
@@ -105,7 +123,6 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
 
   const handleLoginModalClose = () => {
     setShowLoginModal(false);
-    // Re-check login state (it should be true now if login was successful)
     setIsLoggedIn(!!localStorage.getItem('accessToken'));
     fetchMovieDetails();
   };
@@ -126,16 +143,25 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
             <p><strong>Director:</strong> {movie.production.director}</p>
             <p><strong>Producer:</strong> {movie.production.producer}</p>
             <p><strong>Cast:</strong> {movie.production.cast.join(', ')}</p>
-            <p><strong>Cinematography:</strong> {movie.production.cinematography}</p>
             <p><strong>Runtime:</strong> {movie.production.runtime}</p>
           </div>
         );
       case 'screening':
         return (
           <div className="tab-content">
-            <p><strong>Premieres:</strong> {movie.screenings.premieres}</p>
-            <p><strong>Past Screenings:</strong> {movie.screenings.pastScreenings}</p>
-            <p><strong>Upcoming Events:</strong> {movie.screenings.upcomingEvents}</p>
+            {movie.screenings.length ? (
+              <ul>
+                {movie.screenings.map((screening) => (
+                  <li key={screening.screening_id}>
+                    <strong>Date:</strong> {new Date(screening.screening_date).toLocaleDateString()} <br />
+                    <strong>Organizers:</strong> {screening.organizers} <br />
+                    <strong>Source:</strong> {screening.source}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No screening details available.</p>
+            )}
           </div>
         );
       case 'synopsis':
@@ -147,9 +173,13 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       case 'gallery':
         return (
           <div className="tab-content gallery">
-            {movie.gallery.map((img: string, index: number) => (
-              <img key={index} src={img} alt={`Still ${index + 1}`} className="gallery-image" />
-            ))}
+            {movie.gallery.length ? (
+              movie.gallery.map((img: string, index: number) => (
+                <img key={index} src={img} alt={`Still ${index + 1}`} className="gallery-image" />
+              ))
+            ) : (
+              <p>No gallery images available.</p>
+            )}
           </div>
         );
       case 'team':
@@ -197,10 +227,10 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       case 'institution':
         return (
           <div className="tab-content">
-            <p><strong>Production Company:</strong> {movie.institutionalInfo.productionCompany || 'N/A'}</p>
-            <p><strong>Funding Company:</strong> {movie.institutionalInfo.fundingCompany || 'N/A'}</p>
-            <p><strong>Funding Comment:</strong> {movie.institutionalInfo.fundingComment || 'N/A'}</p>
-            <p><strong>Source:</strong> {movie.institutionalInfo.source || 'N/A'}</p>
+            <p><strong>Production Company:</strong> {movie.institutionalInfo.productionCompany}</p>
+            <p><strong>Funding Company:</strong> {movie.institutionalInfo.fundingCompany}</p>
+            <p><strong>Funding Comment:</strong> {movie.institutionalInfo.fundingComment}</p>
+            <p><strong>Source:</strong> {movie.institutionalInfo.source}</p>
           </div>
         );
       case 'documents':
@@ -235,46 +265,25 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         </div>
       </div>
       <div className="tabs">
-      <button
-          className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`}
-          onClick={() => setActiveTab('synopsis')}
-        >
+        <button className={`tab-button ${activeTab === 'synopsis' ? 'active' : ''}`} onClick={() => setActiveTab('synopsis')}>
           Synopsis
-          </button>
-        <button
-          className={`tab-button ${activeTab === 'production' ? 'active' : ''}`}
-          onClick={() => setActiveTab('production')}
-        >
+        </button>
+        <button className={`tab-button ${activeTab === 'production' ? 'active' : ''}`} onClick={() => setActiveTab('production')}>
           Production
         </button>
-        <button
-          className={`tab-button ${activeTab === 'screening' ? 'active' : ''}`}
-          onClick={() => setActiveTab('screening')}
-        >
+        <button className={`tab-button ${activeTab === 'screening' ? 'active' : ''}`} onClick={() => setActiveTab('screening')}>
           Screenings
         </button>
-        <button
-          className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
-          onClick={() => setActiveTab('gallery')}
-        >
+        <button className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => setActiveTab('gallery')}>
           Gallery
         </button>
-        <button
-          className={`tab-button ${activeTab === 'team' ? 'active' : ''}`}
-          onClick={() => setActiveTab('team')}
-        >
-          Production
+        <button className={`tab-button ${activeTab === 'team' ? 'active' : ''}`} onClick={() => setActiveTab('team')}>
+          Crew & Equipment
         </button>
-        <button
-          className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`}
-          onClick={() => setActiveTab('institution')}
-        >
+        <button className={`tab-button ${activeTab === 'institution' ? 'active' : ''}`} onClick={() => setActiveTab('institution')}>
           Institutions & Finance
         </button>
-        <button
-          className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`}
-          onClick={() => setActiveTab('documents')}
-        >
+        <button className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>
           Documents
         </button>
       </div>

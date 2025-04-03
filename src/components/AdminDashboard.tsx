@@ -1,17 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Formik,
+  Form,
+  Field,
+  FieldArray,
+  FormikHelpers,
+  useFormikContext,
+  getIn,
+} from 'formik';
+import * as Yup from 'yup';
 import '../styles/AdminDashboard.css';
 
-// Minimal Film interface for list display
-interface Film {
-  film_id: number;
-  title: string;
-  release_year: number;
-  runtime: string;
-  synopsis: string;
+// Interface for Screening objects.
+export interface Screening {
+  screening_date: string;
+  location_id: string;
+  organizers: string;
+  format: string;
+  audience: string;
+  film_rights: string;
+  comment: string;
+  source: string;
 }
 
-// The full payload format for the film form
-interface FilmFormData {
+// Interface for full film form data.
+export interface FilmFormData {
   title: string;
   release_year: string;
   runtime: string;
@@ -54,19 +67,17 @@ interface FilmFormData {
     source: string;
     funding_location_id: string;
   };
-  screenings: {
-    screening_date: string;
-    location_id: string;
-    organizers: string;
-    format: string;
-    audience: string;
-    film_rights: string;
-    comment: string;
-    source: string;
-  };
+  screenings: Screening[];
 }
 
-const defaultFormData: FilmFormData = {
+// Interface for film list items (for update mode)
+interface FilmListItem {
+  film_id: number;
+  title: string;
+}
+
+// Initial values for adding a new film.
+const initialValues: FilmFormData = {
   title: '',
   release_year: '',
   runtime: '',
@@ -85,18 +96,10 @@ const defaultFormData: FilmFormData = {
     executive_producer: '',
     executive_producer_comment: '',
   },
-  productionTeam: [],
+  productionTeam: [{ department: '', name: '', role: '', comment: '' }],
   actors: '',
-  equipment: {
-    equipment_name: '',
-    description: '',
-    comment: '',
-  },
-  documents: {
-    document_type: '',
-    file_url: '',
-    comment: '',
-  },
+  equipment: { equipment_name: '', description: '', comment: '' },
+  documents: { document_type: '', file_url: '', comment: '' },
   institutionalInfo: {
     production_company: '',
     funding_company: '',
@@ -104,128 +107,430 @@ const defaultFormData: FilmFormData = {
     source: '',
     funding_location_id: '',
   },
-  screenings: {
-    screening_date: '',
-    location_id: '',
-    organizers: '',
-    format: '',
-    audience: '',
-    film_rights: '',
-    comment: '',
-    source: '',
-  },
+  // Start with one empty screening object.
+  screenings: [
+    { screening_date: '', location_id: '', organizers: '', format: '', audience: '', film_rights: '', comment: '', source: '' }
+  ],
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// Yup validation schema.
+const validationSchema = Yup.object().shape({
+  title: Yup.string().required('Title is required'),
+  release_year: Yup.number()
+    .typeError('Release year must be a number')
+    .required('Release year is required'),
+  runtime: Yup.string().required('Runtime is required'),
+  synopsis: Yup.string().required('Synopsis is required'),
+  productionTeam: Yup.array().of(
+    Yup.object().shape({
+      department: Yup.string().required('Department is required'),
+      name: Yup.string().required('Name is required'),
+      role: Yup.string(),
+      comment: Yup.string(),
+    })
+  ),
+  screenings: Yup.array().of(
+    Yup.object().shape({
+      screening_date: Yup.string().required('Screening date is required'),
+      location_id: Yup.string().required('Location ID is required'),
+      organizers: Yup.string().required('Organizers are required'),
+      format: Yup.string(),
+      audience: Yup.string(),
+      film_rights: Yup.string(),
+      comment: Yup.string(),
+      source: Yup.string(),
+    })
+  ),
+  // You can add further validations for other sections as needed.
+});
+
+// Child component to render form content and track dirty state.
+const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIsDirty }) => {
+  const { dirty, errors, touched, isSubmitting } = useFormikContext<FilmFormData>();
+
+  useEffect(() => {
+    setIsDirty(dirty);
+  }, [dirty, setIsDirty]);
+
+  return (
+    <Form className="admin-form">
+      {/* Basic Film Info */}
+      <div>
+        <label htmlFor="title">Title:</label>
+        <Field name="title" type="text" />
+        {getIn(errors, 'title') && getIn(touched, 'title') && (
+          <div className="error">{getIn(errors, 'title')}</div>
+        )}
+      </div>
+      <div>
+        <label htmlFor="release_year">Release Year:</label>
+        <Field name="release_year" type="number" />
+        {getIn(errors, 'release_year') && getIn(touched, 'release_year') && (
+          <div className="error">{getIn(errors, 'release_year')}</div>
+        )}
+      </div>
+      <div>
+        <label htmlFor="runtime">Runtime:</label>
+        <Field name="runtime" type="text" />
+        {getIn(errors, 'runtime') && getIn(touched, 'runtime') && (
+          <div className="error">{getIn(errors, 'runtime')}</div>
+        )}
+      </div>
+      <div>
+        <label htmlFor="synopsis">Synopsis:</label>
+        <Field name="synopsis" as="textarea" />
+        {getIn(errors, 'synopsis') && getIn(touched, 'synopsis') && (
+          <div className="error">{getIn(errors, 'synopsis')}</div>
+        )}
+      </div>
+
+      {/* Production Details */}
+      <fieldset>
+        <legend>Production Details</legend>
+        <div>
+          <label htmlFor="productionDetails.production_timeframe">Timeframe:</label>
+          <Field name="productionDetails.production_timeframe" type="text" />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.shooting_location_id">
+            Shooting Location ID:
+          </label>
+          <Field name="productionDetails.shooting_location_id" type="number" />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.post_production_studio">
+            Post Production Studio:
+          </label>
+          <Field name="productionDetails.post_production_studio" type="text" />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.production_comments">Comments:</label>
+          <Field name="productionDetails.production_comments" as="textarea" />
+        </div>
+      </fieldset>
+
+      {/* Authors */}
+      <fieldset>
+        <legend>Film Authors</legend>
+        <div>
+          <label htmlFor="authors.screenwriter">Screenwriter:</label>
+          <Field name="authors.screenwriter" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.screenwriter_comment">Screenwriter Comment:</label>
+          <Field name="authors.screenwriter_comment" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.filmmaker">Filmmaker:</label>
+          <Field name="authors.filmmaker" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.filmmaker_comment">Filmmaker Comment:</label>
+          <Field name="authors.filmmaker_comment" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.executive_producer">Executive Producer:</label>
+          <Field name="authors.executive_producer" type="text" />
+        </div>
+        <div>
+          <label htmlFor="authors.executive_producer_comment">
+            Executive Producer Comment:
+          </label>
+          <Field name="authors.executive_producer_comment" type="text" />
+        </div>
+      </fieldset>
+
+      {/* Production Team */}
+      <fieldset>
+        <legend>Production Team</legend>
+        <FieldArray name="productionTeam">
+          {({ push, remove, form }) => (
+            <div>
+              {form.values.productionTeam.map((_: any, index: number) => {
+                const deptError = getIn(form.errors, `productionTeam.${index}.department`);
+                const deptTouched = getIn(form.touched, `productionTeam.${index}.department`);
+                const nameError = getIn(form.errors, `productionTeam.${index}.name`);
+                const nameTouched = getIn(form.touched, `productionTeam.${index}.name`);
+                return (
+                  <div key={index} className="production-team-member">
+                    <div>
+                      <label htmlFor={`productionTeam.${index}.department`}>
+                        Department:
+                      </label>
+                      <Field name={`productionTeam.${index}.department`} type="text" />
+                      {deptError && deptTouched && (
+                        <div className="error">{deptError}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor={`productionTeam.${index}.name`}>Name:</label>
+                      <Field name={`productionTeam.${index}.name`} type="text" />
+                      {nameError && nameTouched && (
+                        <div className="error">{nameError}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor={`productionTeam.${index}.role`}>Role:</label>
+                      <Field name={`productionTeam.${index}.role`} type="text" />
+                    </div>
+                    <div>
+                      <label htmlFor={`productionTeam.${index}.comment`}>Comment:</label>
+                      <Field name={`productionTeam.${index}.comment`} as="textarea" />
+                    </div>
+                    <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                      Remove
+                    </button>
+                  </div>
+                );
+              })}
+              <button type="button" className="btn-add" onClick={() => push({ department: '', name: '', role: '', comment: '' })}>
+                Add Production Team Member
+              </button>
+            </div>
+          )}
+        </FieldArray>
+      </fieldset>
+
+      {/* Actors */}
+      <fieldset>
+        <legend>Actors (comma-separated):</legend>
+        <div>
+          <Field name="actors" type="text" />
+        </div>
+      </fieldset>
+
+      {/* Equipment */}
+      <fieldset>
+        <legend>Film Equipment</legend>
+        <div>
+          <label htmlFor="equipment.equipment_name">Equipment Name:</label>
+          <Field name="equipment.equipment_name" type="text" />
+        </div>
+        <div>
+          <label htmlFor="equipment.description">Description:</label>
+          <Field name="equipment.description" as="textarea" />
+        </div>
+        <div>
+          <label htmlFor="equipment.comment">Comment:</label>
+          <Field name="equipment.comment" as="textarea" />
+        </div>
+      </fieldset>
+
+      {/* Documents */}
+      <fieldset>
+        <legend>Film Documents</legend>
+        <div>
+          <label htmlFor="documents.document_type">Document Type:</label>
+          <Field name="documents.document_type" type="text" />
+        </div>
+        <div>
+          <label htmlFor="documents.file_url">File URL:</label>
+          <Field name="documents.file_url" type="text" />
+        </div>
+        <div>
+          <label htmlFor="documents.comment">Comment:</label>
+          <Field name="documents.comment" as="textarea" />
+        </div>
+      </fieldset>
+
+      {/* Institutional & Financial Info */}
+      <fieldset>
+        <legend>Institutional & Financial Information</legend>
+        <div>
+          <label htmlFor="institutionalInfo.production_company">
+            Production Company:
+          </label>
+          <Field name="institutionalInfo.production_company" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.funding_company">Funding Company:</label>
+          <Field name="institutionalInfo.funding_company" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.funding_comment">Funding Comment:</label>
+          <Field name="institutionalInfo.funding_comment" as="textarea" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.source">Source:</label>
+          <Field name="institutionalInfo.source" type="text" />
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.funding_location_id">
+            Funding Location ID:
+          </label>
+          <Field name="institutionalInfo.funding_location_id" type="number" />
+        </div>
+      </fieldset>
+
+      {/* Screenings handled as an array */}
+      <fieldset>
+        <legend>Film Screenings</legend>
+        <FieldArray name="screenings">
+          {({ push, remove, form }) => (
+            <div>
+              {form.values.screenings.map((_: any, index: number) => {
+                const screeningDateError = getIn(form.errors, `screenings.${index}.screening_date`);
+                const screeningDateTouched = getIn(form.touched, `screenings.${index}.screening_date`);
+                const locationIdError = getIn(form.errors, `screenings.${index}.location_id`);
+                const locationIdTouched = getIn(form.touched, `screenings.${index}.location_id`);
+                const organizersError = getIn(form.errors, `screenings.${index}.organizers`);
+                const organizersTouched = getIn(form.touched, `screenings.${index}.organizers`);
+                return (
+                  <div key={index} className="screening-member">
+                    <div>
+                      <label htmlFor={`screenings.${index}.screening_date`}>Screening Date:</label>
+                      <Field name={`screenings.${index}.screening_date`} type="date" />
+                      {screeningDateError && screeningDateTouched && (
+                        <div className="error">{screeningDateError}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.location_id`}>Location ID:</label>
+                      <Field name={`screenings.${index}.location_id`} type="number" />
+                      {locationIdError && locationIdTouched && (
+                        <div className="error">{locationIdError}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.organizers`}>Organizers:</label>
+                      <Field name={`screenings.${index}.organizers`} type="text" />
+                      {organizersError && organizersTouched && (
+                        <div className="error">{organizersError}</div>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.format`}>Format:</label>
+                      <Field name={`screenings.${index}.format`} type="text" />
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.audience`}>Audience:</label>
+                      <Field name={`screenings.${index}.audience`} type="text" />
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.film_rights`}>Film Rights:</label>
+                      <Field name={`screenings.${index}.film_rights`} type="text" />
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.comment`}>Comment:</label>
+                      <Field name={`screenings.${index}.comment`} as="textarea" />
+                    </div>
+                    <div>
+                      <label htmlFor={`screenings.${index}.source`}>Source:</label>
+                      <Field name={`screenings.${index}.source`} type="text" />
+                    </div>
+                    <button type="button" className="btn-remove" onClick={() => remove(index)}>
+                      Remove
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() =>
+                  push({
+                    screening_date: '',
+                    location_id: '',
+                    organizers: '',
+                    format: '',
+                    audience: '',
+                    film_rights: '',
+                    comment: '',
+                    source: '',
+                  })
+                }
+              >
+                Add Screening
+              </button>
+            </div>
+          )}
+        </FieldArray>
+      </fieldset>
+
+      <button type="submit" className="btn-submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Submitting...' : 'Submit'}
+      </button>
+    </Form>
+  );
+};
+
+// Helper to wrap FormContent in Formik.
+const renderForm = (
+  initialVals: FilmFormData,
+  onSubmit: (values: FilmFormData, actions: FormikHelpers<FilmFormData>) => Promise<void>,
+  setIsDirty: (dirty: boolean) => void
+) => (
+  <Formik
+    initialValues={initialVals}
+    validationSchema={validationSchema}
+    onSubmit={onSubmit}
+    enableReinitialize={true}
+  >
+    {() => <FormContent setIsDirty={setIsDirty} />}
+  </Formik>
+);
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'add' | 'update' | 'delete'>('add');
-  const [films, setFilms] = useState<Film[]>([]);
-  const [selectedFilm, setSelectedFilm] = useState<Film | null>(null);
-  const [message, setMessage] = useState('');
-  const [formData, setFormData] = useState<FilmFormData>(defaultFormData);
+  const [message, setMessage] = useState<string>('');
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [filmIdToDelete, setFilmIdToDelete] = useState<number | null>(null);
+  
+  // For update mode.
+  const [films, setFilms] = useState<FilmListItem[]>([]);
+  const [selectedFilmId, setSelectedFilmId] = useState<string>(''); // Now defined.
+  const [updateInitialValues, setUpdateInitialValues] = useState<FilmFormData | null>(null);
 
-  // Fetch films for update and delete modes
-  const fetchFilms = useCallback(async () => {
+  // Load films list for update mode.
+  const loadFilmsList = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/films`, {
+      const res = await fetch('http://localhost:3001/films', {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: localStorage.getItem('accessToken')
+            ? `Bearer ${localStorage.getItem('accessToken')}`
+            : '',
         },
       });
-      if (!res.ok) throw new Error('Error fetching films');
+      if (!res.ok) {
+        setMessage('Failed to load films list');
+        return;
+      }
       const data = await res.json();
       setFilms(data.films);
     } catch (error: any) {
-      console.error('Error fetching films:', error);
-      setMessage(error.message);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchFilms();
-  }, [fetchFilms]);
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    // Update top-level keys in the form
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // For nested object inputs (e.g., productionDetails)
-  const handleNestedInputChange = (
-    group: keyof FilmFormData,
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [group]: { ...(formData[group] as object), [e.target.name]: e.target.value },
-    });
-  };
-
-  const resetForm = () => {
-    setFormData(defaultFormData);
-  };
-
-  // Unified submit handler for Add and Update
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const endpoint = selectedFilm
-      ? `${API_BASE_URL}/films/${selectedFilm.film_id}`
-      : `${API_BASE_URL}/films`;
-    const method = selectedFilm ? 'PUT' : 'POST';
-
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        body: JSON.stringify(formData),
-      });
-      if (!res.ok) throw new Error(selectedFilm ? 'Failed to update film' : 'Failed to add film');
-      setMessage(selectedFilm ? 'Film updated successfully!' : 'Film added successfully!');
-      setSelectedFilm(null);
-      resetForm();
-      fetchFilms();
-    } catch (error: any) {
-      setMessage(error.message);
+      setMessage('Error loading films: ' + error.message);
     }
   };
 
-  const handleDeleteFilm = async (filmId: number) => {
+  // Load film data for update.
+  const loadFilmData = async (filmId: number) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/films/${filmId}`, {
-        method: 'DELETE',
+      const res = await fetch(`http://localhost:3001/films/${filmId}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: localStorage.getItem('accessToken')
+            ? `Bearer ${localStorage.getItem('accessToken')}`
+            : '',
         },
       });
-      if (!res.ok) throw new Error('Failed to delete film');
-      setMessage('Film deleted successfully!');
-      fetchFilms();
-    } catch (error: any) {
-      setMessage(error.message);
-    }
-  };
-
-  const handleSelectFilmForUpdate = async (film: Film) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/films/${film.film_id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-      if (!res.ok) throw new Error('Failed to fetch full film details');
+      if (!res.ok) {
+        setMessage('Failed to load film data');
+        return;
+      }
       const data = await res.json();
-      // Map the backend response to the FilmFormData format.
-      setFormData({
-        title: data.film.title || '',
-        release_year: data.film.release_year ? data.film.release_year.toString() : '',
-        runtime: data.film.runtime || '',
-        synopsis: data.film.synopsis || '',
+      const screenings = data.screenings && data.screenings.length > 0
+      ? data.screenings.map((s: any) => ({
+          ...s,
+          screening_date: new Date(s.screening_date).toISOString().substring(0, 10)
+        }))
+      : [];
+      const film: FilmFormData = {
+        title: data.film.title,
+        release_year: data.film.release_year.toString(),
+        runtime: data.film.runtime,
+        synopsis: data.film.synopsis,
         productionDetails: {
           production_timeframe: data.productionDetails?.production_timeframe || '',
           shooting_location_id: data.productionDetails?.shooting_location_id?.toString() || '',
@@ -238,20 +543,19 @@ const AdminDashboard: React.FC = () => {
           filmmaker: (data.authors.find((a: any) => a.role === 'Filmmaker') || {}).name || '',
           filmmaker_comment: (data.authors.find((a: any) => a.role === 'Filmmaker') || {}).comment || '',
           executive_producer: (data.authors.find((a: any) => a.role === 'Executive Producer') || {}).name || '',
-          executive_producer_comment: (data.authors.find((a: any) => a.role === 'Executive Producer') || {}).comment || '',
+          executive_producer_comment:
+            (data.authors.find((a: any) => a.role === 'Executive Producer') || {}).comment || '',
         },
-        productionTeam: data.productionTeam || [],
+        productionTeam: data.productionTeam || [{ department: '', name: '', role: '', comment: '' }],
         actors: data.actors ? data.actors.map((a: any) => a.actor_name).join(', ') : '',
-        equipment: {
-          equipment_name: data.equipment?.[0]?.equipment_name || '',
-          description: data.equipment?.[0]?.description || '',
-          comment: data.equipment?.[0]?.comment || '',
-        },
-        documents: {
-          document_type: data.documents?.[0]?.document_type || '',
-          file_url: data.documents?.[0]?.file_url || '',
-          comment: data.documents?.[0]?.comment || '',
-        },
+        equipment:
+          data.equipment && data.equipment.length > 0
+            ? data.equipment[0]
+            : { equipment_name: '', description: '', comment: '' },
+        documents:
+          data.documents && data.documents.length > 0
+            ? data.documents[0]
+            : { document_type: '', file_url: '', comment: '' },
         institutionalInfo: {
           production_company: data.institutionalInfo?.production_company || '',
           funding_company: data.institutionalInfo?.funding_company || '',
@@ -259,203 +563,278 @@ const AdminDashboard: React.FC = () => {
           source: data.institutionalInfo?.source || '',
           funding_location_id: data.institutionalInfo?.funding_location_id?.toString() || '',
         },
-        screenings: {
-          screening_date: data.screenings?.[0]?.screening_date || '',
-          location_id: data.screenings?.[0]?.location_id?.toString() || '',
-          organizers: data.screenings?.[0]?.organizers || '',
-          format: data.screenings?.[0]?.format || '',
-          audience: data.screenings?.[0]?.audience || '',
-          film_rights: data.screenings?.[0]?.film_rights || '',
-          comment: data.screenings?.[0]?.comment || '',
-          source: data.screenings?.[0]?.source || '',
-        },
-      });
-      setSelectedFilm(film);
-      setActiveTab('update');
+        // Now screenings is handled as an array.
+        screenings      };
+      setUpdateInitialValues(film);
+      setMessage('');
     } catch (error: any) {
-      setMessage(error.message);
+      setMessage('Error loading film data: ' + error.message);
     }
   };
 
-  // Render the Add/Update film form
-  const renderFilmForm = (mode: 'Add Film' | 'Update Film') => (
-    <form onSubmit={handleSubmit} className="admin-form">
-      <fieldset>
-        <legend>Film Information</legend>
-        <label htmlFor="title">Title:</label>
-        <input type="text" name="title" id="title" value={formData.title} onChange={handleInputChange} required />
-        <label htmlFor="release_year">Release Year:</label>
-        <input type="number" name="release_year" id="release_year" value={formData.release_year} onChange={handleInputChange} required />
-        <label htmlFor="runtime">Runtime:</label>
-        <input type="text" name="runtime" id="runtime" value={formData.runtime} onChange={handleInputChange} required />
-        <label htmlFor="synopsis">Synopsis:</label>
-        <textarea name="synopsis" id="synopsis" value={formData.synopsis} onChange={handleInputChange} required />
-      </fieldset>
-      <fieldset>
-        <legend>Production Details</legend>
-        <label htmlFor="production_timeframe">Production Timeframe:</label>
-        <input type="text" name="production_timeframe" id="production_timeframe" value={formData.productionDetails.production_timeframe} onChange={(e) => handleNestedInputChange('productionDetails', e)} />
-        <label htmlFor="shooting_location_id">Shooting Location ID:</label>
-        <input type="number" name="shooting_location_id" id="shooting_location_id" value={formData.productionDetails.shooting_location_id} onChange={(e) => handleNestedInputChange('productionDetails', e)} />
-        <label htmlFor="post_production_studio">Post-Production Studio:</label>
-        <input type="text" name="post_production_studio" id="post_production_studio" value={formData.productionDetails.post_production_studio} onChange={(e) => handleNestedInputChange('productionDetails', e)} />
-        <label htmlFor="production_comments">Production Comments:</label>
-        <textarea name="production_comments" id="production_comments" value={formData.productionDetails.production_comments} onChange={(e) => handleNestedInputChange('productionDetails', e)} />
-      </fieldset>
-      <fieldset>
-        <legend>Film Authors</legend>
-        <label htmlFor="screenwriter">Screenwriter:</label>
-        <input type="text" name="screenwriter" id="screenwriter" value={formData.authors.screenwriter} onChange={(e) => handleNestedInputChange('authors', e)} />
-        <label htmlFor="screenwriter_comment">Screenwriter Comment:</label>
-        <input type="text" name="screenwriter_comment" id="screenwriter_comment" value={formData.authors.screenwriter_comment} onChange={(e) => handleNestedInputChange('authors', e)} />
-        <label htmlFor="filmmaker">Filmmaker:</label>
-        <input type="text" name="filmmaker" id="filmmaker" value={formData.authors.filmmaker} onChange={(e) => handleNestedInputChange('authors', e)} />
-        <label htmlFor="filmmaker_comment">Filmmaker Comment:</label>
-        <input type="text" name="filmmaker_comment" id="filmmaker_comment" value={formData.authors.filmmaker_comment} onChange={(e) => handleNestedInputChange('authors', e)} />
-        <label htmlFor="executive_producer">Executive Producer:</label>
-        <input type="text" name="executive_producer" id="executive_producer" value={formData.authors.executive_producer} onChange={(e) => handleNestedInputChange('authors', e)} />
-        <label htmlFor="executive_producer_comment">Executive Producer Comment:</label>
-        <input type="text" name="executive_producer_comment" id="executive_producer_comment" value={formData.authors.executive_producer_comment} onChange={(e) => handleNestedInputChange('authors', e)} />
-      </fieldset>
-      <fieldset>
-        <legend>Production Team</legend>
-        <label htmlFor="productionTeam">(JSON array format)</label>
-        <textarea
-          name="productionTeam"
-          id="productionTeam"
-          placeholder='Example: [{"department": "Image Technicians", "name": "John Doe", "role": "", "comment": ""}]'
-          value={JSON.stringify(formData.productionTeam)}
-          onChange={(e) => {
-            try {
-              const parsed = JSON.parse(e.target.value);
-              setFormData({ ...formData, productionTeam: parsed });
-            } catch {
-              // Optionally, handle JSON parse errors here.
-            }
-          }}
-        />
-      </fieldset>
-      <fieldset>
-        <legend>Film Actors</legend>
-        <label htmlFor="actors">Actors (comma-separated):</label>
-        <input type="text" name="actors" id="actors" value={formData.actors} onChange={handleInputChange} />
-      </fieldset>
-      <fieldset>
-        <legend>Film Equipment</legend>
-        <label htmlFor="equipment_name">Equipment Name:</label>
-        <input type="text" name="equipment_name" id="equipment_name" value={formData.equipment.equipment_name} onChange={(e) => handleNestedInputChange('equipment', e)} />
-        <label htmlFor="description">Equipment Description:</label>
-        <textarea name="description" id="description" value={formData.equipment.description} onChange={(e) => handleNestedInputChange('equipment', e)} />
-        <label htmlFor="comment">Equipment Comment:</label>
-        <textarea name="comment" id="comment" value={formData.equipment.comment} onChange={(e) => handleNestedInputChange('equipment', e)} />
-      </fieldset>
-      <fieldset>
-        <legend>Film Documents</legend>
-        <label htmlFor="document_type">Document Type:</label>
-        <input type="text" name="document_type" id="document_type" value={formData.documents.document_type} onChange={(e) => handleNestedInputChange('documents', e)} />
-        <label htmlFor="file_url">File URL:</label>
-        <input type="text" name="file_url" id="file_url" value={formData.documents.file_url} onChange={(e) => handleNestedInputChange('documents', e)} />
-        <label htmlFor="comment">Document Comment:</label>
-        <textarea name="comment" id="comment" value={formData.documents.comment} onChange={(e) => handleNestedInputChange('documents', e)} />
-      </fieldset>
-      <fieldset>
-        <legend>Institutional & Financial Information</legend>
-        <label htmlFor="production_company">Production Company:</label>
-        <input type="text" name="production_company" id="production_company" value={formData.institutionalInfo.production_company} onChange={(e) => handleNestedInputChange('institutionalInfo', e)} />
-        <label htmlFor="funding_company">Funding Company:</label>
-        <input type="text" name="funding_company" id="funding_company" value={formData.institutionalInfo.funding_company} onChange={(e) => handleNestedInputChange('institutionalInfo', e)} />
-        <label htmlFor="funding_comment">Funding Comment:</label>
-        <textarea name="funding_comment" id="funding_comment" value={formData.institutionalInfo.funding_comment} onChange={(e) => handleNestedInputChange('institutionalInfo', e)} />
-        <label htmlFor="source">Source:</label>
-        <input type="text" name="source" id="source" value={formData.institutionalInfo.source} onChange={(e) => handleNestedInputChange('institutionalInfo', e)} />
-        <label htmlFor="funding_location_id">Funding Location ID:</label>
-        <input type="number" name="funding_location_id" id="funding_location_id" value={formData.institutionalInfo.funding_location_id} onChange={(e) => handleNestedInputChange('institutionalInfo', e)} />
-      </fieldset>
-      <fieldset>
-        <legend>Film Screenings</legend>
-        <label htmlFor="screening_date">Screening Date:</label>
-        <input type="date" name="screening_date" id="screening_date" value={formData.screenings.screening_date} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="location_id">Screening Location ID:</label>
-        <input type="number" name="location_id" id="location_id" value={formData.screenings.location_id} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="organizers">Organizers:</label>
-        <input type="text" name="organizers" id="organizers" value={formData.screenings.organizers} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="format">Format:</label>
-        <input type="text" name="format" id="format" value={formData.screenings.format} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="audience">Audience:</label>
-        <input type="text" name="audience" id="audience" value={formData.screenings.audience} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="film_rights">Film Rights:</label>
-        <input type="text" name="film_rights" id="film_rights" value={formData.screenings.film_rights} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="comment">Screening Comment:</label>
-        <textarea name="comment" id="comment" value={formData.screenings.comment} onChange={(e) => handleNestedInputChange('screenings', e)} />
-        <label htmlFor="source">Screening Source:</label>
-        <input type="text" name="source" id="source" value={formData.screenings.source} onChange={(e) => handleNestedInputChange('screenings', e)} />
-      </fieldset>
-      <button type="submit" className="submit-button">{mode}</button>
-    </form>
-  );
+  // Warn user about unsaved changes.
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
+  // When switching to update mode, load films list.
+  useEffect(() => {
+    if (activeTab === 'update') {
+      loadFilmsList();
+    }
+  }, [activeTab]);
+
+  // Submit handler for adding a film.
+  const onAddSubmit = async (
+    values: FilmFormData,
+    actions: FormikHelpers<FilmFormData>
+  ) => {
+    try {
+      const res = await fetch('http://localhost:3001/films', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        actions.setErrors({ title: errorData.error || 'Submission error' });
+        setMessage(errorData.error || 'Submission error');
+        throw new Error(errorData.error);
+      }
+      setMessage('Film added successfully!');
+      actions.resetForm();
+      setIsDirty(false);
+    } catch (error: any) {
+      setMessage(error.message);
+    } finally {
+      actions.setSubmitting(false);
+    }
+  };
+
+  // Submit handler for updating a film.
+  const onUpdateSubmit = async (
+    values: FilmFormData,
+    actions: FormikHelpers<FilmFormData>
+  ) => {
+    try {
+      const res = await fetch(`http://localhost:3001/films/${selectedFilmId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        actions.setErrors({ title: errorData.error || 'Submission error' });
+        setMessage(errorData.error || 'Submission error');
+        throw new Error(errorData.error);
+      }
+      setMessage('Film updated successfully!');
+      actions.resetForm();
+      setIsDirty(false);
+    } catch (error: any) {
+      setMessage(error.message);
+    } finally {
+      actions.setSubmitting(false);
+    }
+  };
+  const handleDelete = async (filmId: number) => {
+    if (window.confirm("Are you sure you want to delete this film?")) {
+      try {
+        const res = await fetch(`http://localhost:3001/films/${filmId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: localStorage.getItem('accessToken')
+              ? `Bearer ${localStorage.getItem('accessToken')}`
+              : '',
+          },
+        });
+        if (!res.ok) {
+          setMessage('Failed to delete film');
+          return;
+        }
+        setMessage('Film deleted successfully!');
+        // Reload the films list after deletion.
+        loadFilmsList();
+      } catch (error: any) {
+        setMessage('Error deleting film: ' + error.message);
+      }
+    }
+  };
+  
   return (
     <div className="admin-dashboard">
       <h1>Admin Dashboard</h1>
       <div className="admin-tabs">
         <button
           className={activeTab === 'add' ? 'active' : ''}
-          onClick={() => { setActiveTab('add'); setMessage(''); setSelectedFilm(null); resetForm(); }}
+          onClick={() => {
+            setActiveTab('add');
+            setMessage('');
+            setUpdateInitialValues(null);
+          }}
         >
           Add Film
         </button>
         <button
           className={activeTab === 'update' ? 'active' : ''}
-          onClick={() => { setActiveTab('update'); setMessage(''); }}
+          onClick={() => {
+            setActiveTab('update');
+            setMessage('');
+            setUpdateInitialValues(null);
+          }}
         >
           Update Film
         </button>
         <button
           className={activeTab === 'delete' ? 'active' : ''}
-          onClick={() => { setActiveTab('delete'); setMessage(''); }}
+          onClick={() => {
+            setActiveTab('delete');
+            setMessage('');
+            setUpdateInitialValues(null);
+          }}
         >
           Delete Film
         </button>
       </div>
       <div className="admin-content">
         {message && <p className="message">{message}</p>}
-        {activeTab === 'add' && renderFilmForm('Add Film')}
+        {activeTab === 'add' &&
+          renderForm(initialValues, onAddSubmit, setIsDirty)}
         {activeTab === 'update' && (
-          <>
-            {!selectedFilm ? (
-              <>
+          <div className="update-section">
+            {!updateInitialValues ? (
+              <div>
                 <h2>Select a Film to Update</h2>
-                <ul className="film-list">
-                  {films.map((film) => (
-                    <li key={film.film_id}>
-                      {film.title}{' '}
-                      <button onClick={() => handleSelectFilmForUpdate(film)} className="edit-button">
-                        Edit
-                      </button>
-                    </li>
-                  ))}
+                <input
+                  type="text"
+                  placeholder="Search by movie title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-bar"
+                />
+                <ul className="films-list">
+                  {films
+                    .filter((film) =>
+                      film.title.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((film) => (
+                      <li key={film.film_id}>
+                        <span>{film.title}</span>
+                        <button
+                          className="btn-edit"
+                          onClick={() => {
+                            setSelectedFilmId(film.film_id.toString());
+                            loadFilmData(film.film_id);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </li>
+                    ))}
                 </ul>
-              </>
+              </div>
             ) : (
-              renderFilmForm('Update Film')
+              renderForm(updateInitialValues, onUpdateSubmit, setIsDirty)
             )}
-          </>
+          </div>
         )}
         {activeTab === 'delete' && (
-          <>
-            <h2>Select a Film to Delete</h2>
-            <ul className="film-list">
-              {films.map((film) => (
-                <li key={film.film_id}>
-                  {film.title}{' '}
-                  <button onClick={() => handleDeleteFilm(film.film_id)} className="delete-button">
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+  <div className="delete-section">
+    <h2>Select a Film to Delete</h2>
+    <input
+      type="text"
+      placeholder="Search by movie title..."
+      value={deleteSearchTerm}
+      onChange={(e) => setDeleteSearchTerm(e.target.value)}
+      className="search-bar"
+    />
+    <ul className="films-list">
+      {films
+        .filter((film) =>
+          film.title.toLowerCase().includes(deleteSearchTerm.toLowerCase())
+        )
+        .map((film) => (
+          <li key={film.film_id}>
+            <span>{film.title}</span>
+            <button
+              className="btn-delete"
+              onClick={() => {
+                setFilmIdToDelete(film.film_id);
+                setShowConfirmDialog(true);
+              }}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+    </ul>
+    {showConfirmDialog && (
+      <div className="confirm-overlay">
+        <div className="confirm-dialog">
+          <p>Are you sure you want to delete this film?</p>
+          <div className="confirm-buttons">
+            <button
+              className="btn-confirm"
+              onClick={async () => {
+                if (filmIdToDelete !== null) {
+                  try {
+                    const res = await fetch(`http://localhost:3001/films/${filmIdToDelete}`, {
+                      method: 'DELETE',
+                      headers: {
+                        Authorization: localStorage.getItem('accessToken')
+                          ? `Bearer ${localStorage.getItem('accessToken')}`
+                          : '',
+                      },
+                    });
+                    if (!res.ok) {
+                      setMessage('Failed to delete film');
+                    } else {
+                      setMessage('Film deleted successfully!');
+                      loadFilmsList(); // Reload the films list after deletion.
+                    }
+                  } catch (error: any) {
+                    setMessage('Error deleting film: ' + error.message);
+                  } finally {
+                    setShowConfirmDialog(false);
+                    setFilmIdToDelete(null);
+                  }
+                }
+              }}
+            >
+              Confirm
+            </button>
+            <button
+              className="btn-cancel"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setFilmIdToDelete(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+
+       
+
       </div>
     </div>
   );
