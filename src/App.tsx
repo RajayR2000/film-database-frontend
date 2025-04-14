@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
 import './styles/App.css';
@@ -7,8 +7,9 @@ import HomePage from './components/HomePage';
 import MovieDetailsPage from './components/MovieDetailsPage';
 import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
+import Unauthorized from './components/Unauthorized';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Define an interface for our decoded JWT payload.
 interface JwtPayload {
   role: string;
 }
@@ -17,6 +18,7 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('accessToken'));
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -26,7 +28,6 @@ const App: React.FC = () => {
     }
   }, [darkMode]);
 
-  // When isLoggedIn changes, decode the token to extract the user's role.
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -40,6 +41,7 @@ const App: React.FC = () => {
     } else {
       setUserRole(null);
     }
+    setAuthLoaded(true);
   }, [isLoggedIn]);
 
   return (
@@ -53,14 +55,21 @@ const App: React.FC = () => {
       />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route
-          path="/movie/:id"
-          element={<MovieDetailsPage isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
+        <Route path="/movie/:id" element={<MovieDetailsPage isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />} />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute
+              isLoggedIn={isLoggedIn}
+              authLoaded={authLoaded}
+              userRole={userRole}
+              unauthorizedPath="/unauthorized"
+            >
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
         />
-        {/* Admin dashboard – only visible to admins. Backend will enforce the check too. */}
-        <Route path="/admin" element={<AdminDashboard />}>
-          {/* Add additional admin routes as needed */}
-        </Route>
+        <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </Router>
   );

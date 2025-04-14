@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
 import movie_poster from '../assets/movie_poster.jpg';
@@ -71,6 +71,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [activeTab, setActiveTab] = useState('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const navigate = useNavigate();
 
   const fetchMovieDetails = useCallback(async () => {
     if (!id) return;
@@ -148,6 +149,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
     setShowLoginModal(false);
     setIsLoggedIn(!!localStorage.getItem('accessToken'));
     fetchMovieDetails();
+    navigate('/');
   };
 
   if (!id) {

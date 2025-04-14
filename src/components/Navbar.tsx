@@ -1,5 +1,7 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import LoginModal from './LoginModal';
+import NotificationPopup from './NotificationPopup';
 import '../styles/Navbar.css';
 
 interface NavbarProps {
@@ -17,6 +19,10 @@ const Navbar: React.FC<NavbarProps> = ({
   setIsLoggedIn,
   userRole,
 }) => {
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const navigate = useNavigate();
+
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const handleLogout = () => {
@@ -24,45 +30,61 @@ const Navbar: React.FC<NavbarProps> = ({
     setIsLoggedIn(false);
   };
 
+  const handleLoginClick = () => {
+    setShowLoginModal(true);
+  };
+
+  // This function is called when the login modal is closed.
+  // If the token exists, it sets the logged-in state and triggers the popup.
+  const handleModalClose = () => {
+    setShowLoginModal(false);
+    if (localStorage.getItem('accessToken')) {
+      setIsLoggedIn(true);
+      setShowNotification(true);
+    }
+  };
+
   return (
-    <nav className="navbar">
-      <div className="navbar-logo">
-        <Link to="/">Early African Films</Link>
-      </div>
-      <ul className="navbar-menu">
-        <li>
-          <Link to="/">Home</Link>
-        </li>
-        {/* <li className="dropdown">
-          <Link to="/browse">Browse Movies</Link>
-          <div className="dropdown-content">
-            <Link to="/browse/genre">Genre</Link>
-            <Link to="/browse/era">Era</Link>
-            <Link to="/browse/director">Director</Link>
-          </div>
-        </li>
-        <li>
-          <Link to="/about">About</Link>
-        </li> */}
-        <li>
-          <Link to="/contact">Contact</Link>
-        </li>
-        {/* Show admin link only if user is admin */}
-        {isLoggedIn && userRole === 'admin' && (
+    <>
+      <nav className="navbar">
+        <div className="navbar-logo">
+          <Link to="/">Early African Films</Link>
+        </div>
+        <ul className="navbar-menu">
           <li>
-            <Link to="/admin">Admin</Link>
+            <Link to="/">Home</Link>
           </li>
-        )}
-      </ul>
-      <div className="navbar-controls navbar-logout">
-       
-        {isLoggedIn && (
-          <button onClick={handleLogout} className="dark-mode-toggle" >
-            Logout
-          </button>
-        )}
-      </div>
-    </nav>
+          <li>
+            <Link to="/contact">Contact</Link>
+          </li>
+          {/* Show admin link only if user is an admin */}
+          {isLoggedIn && userRole === 'admin' && (
+            <li>
+              <Link to="/admin">Admin</Link>
+            </li>
+          )}
+        </ul>
+        <div className="navbar-controls">
+          {isLoggedIn ? (
+            <button onClick={handleLogout} className="dark-mode-toggle">
+              Logout
+            </button>
+          ) : (
+            <button onClick={handleLoginClick} className="dark-mode-toggle">
+              Login
+            </button>
+          )}
+    
+        </div>
+      </nav>
+      {showLoginModal && <LoginModal onClose={handleModalClose} />}
+      {showNotification && (
+        <NotificationPopup
+          message="Successfully logged in!"
+          onClose={() => setShowNotification(false)}
+        />
+      )}
+    </>
   );
 };
 

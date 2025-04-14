@@ -56,9 +56,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         <button className="submit-button" onClick={handleLogin}>
           Login
         </button>
-        {/* <button className="close-button" onClick={onClose}>
+        <button className="close-button" onClick={onClose}>
           Return Home
-        </button> */}
+        </button>
       </div>
     </div>
   );
