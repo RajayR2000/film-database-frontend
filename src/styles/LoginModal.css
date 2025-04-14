@@ -98,4 +98,21 @@
     background-color: #d4af37;
     color: #222;
   }
+  /* LoginModal.css additional styles */
+.additional-info {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #ccc; /* Adjust to match your theme */
+}
+
+.additional-info a {
+  color: #d4af37; /* Accent color similar to your theme */
+  text-decoration: none;
+}
+
+.additional-info a:hover {
+  text-decoration: underline;
+}
+
   

@@ -59,6 +59,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         <button className="close-button" onClick={onClose}>
           Return Home
         </button>
+        <div className="additional-info">
+          <p>
+            If you are not a member of EAC, please reach out to{' '}
+            <a href="mailto:your-email@example.com">vbouchar@iu.edu</a> to get access.
+          </p>
+        </div>
       </div>
     </div>
   );
