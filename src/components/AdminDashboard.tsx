@@ -10,12 +10,13 @@ import {
 } from 'formik';
 import * as Yup from 'yup';
 import '../styles/AdminDashboard.css';
+import NotificationPopup from './NotificationPopup';
 import { apiFetch } from '../apifetch';
 
 // Interface for Screening objects.
 export interface Screening {
   screening_date: string;
-  location_id: string;
+  location_id: number;
   organizers: string;
   format: string;
   audience: string;
@@ -32,7 +33,7 @@ export interface FilmFormData {
   synopsis: string;
   productionDetails: {
     production_timeframe: string;
-    shooting_location_id: string;
+    shooting_location_id: number;
     post_production_studio: string;
     production_comments: string;
   };
@@ -66,7 +67,7 @@ export interface FilmFormData {
     funding_company: string;
     funding_comment: string;
     source: string;
-    funding_location_id: string;
+    funding_location_id: number;
   };
   screenings: Screening[];
 }
@@ -85,7 +86,7 @@ const initialValues: FilmFormData = {
   synopsis: '',
   productionDetails: {
     production_timeframe: '',
-    shooting_location_id: '',
+    shooting_location_id: 1,
     post_production_studio: '',
     production_comments: '',
   },
@@ -106,41 +107,41 @@ const initialValues: FilmFormData = {
     funding_company: '',
     funding_comment: '',
     source: '',
-    funding_location_id: '',
+    funding_location_id: 1,
   },
   // Start with one empty screening object.
   screenings: [
-    { screening_date: '', location_id: '', organizers: '', format: '', audience: '', film_rights: '', comment: '', source: '' }
+    { screening_date: '', location_id: 1, organizers: '', format: '', audience: '', film_rights: '', comment: '', source: '' }
   ],
 };
 
 // Yup validation schema.
 const validationSchema = Yup.object().shape({
-  title: Yup.string(),
-  release_year: Yup.number()
-    .typeError('Release year must be a number'),
-  runtime: Yup.string(),
-  synopsis: Yup.string(),
-  productionTeam: Yup.array().of(
-    Yup.object().shape({
-      department: Yup.string(),
-      name: Yup.string(),
-      role: Yup.string(),
-      comment: Yup.string(),
-    })
-  ),
-  screenings: Yup.array().of(
-    Yup.object().shape({
-      screening_date: Yup.string(),
-      location_id: Yup.string(),
-      organizers: Yup.string(),
-      format: Yup.string(),
-      audience: Yup.string(),
-      film_rights: Yup.string(),
-      comment: Yup.string(),
-      source: Yup.string(),
-    })
-  ),
+  // title: Yup.string(),
+  // release_year: Yup.number()
+  //   .typeError('Release year must be a number'),
+  // runtime: Yup.string(),
+  // synopsis: Yup.string(),
+  // productionTeam: Yup.array().of(
+  //   Yup.object().shape({
+  //     department: Yup.string(),
+  //     name: Yup.string(),
+  //     role: Yup.string(),
+  //     comment: Yup.string(),
+  //   })
+  // ),
+  // screenings: Yup.array().of(
+  //   Yup.object().shape({
+  //     screening_date: Yup.string(),
+  //     location_id: Yup.string(),
+  //     organizers: Yup.string(),
+  //     format: Yup.string(),
+  //     audience: Yup.string(),
+  //     film_rights: Yup.string(),
+  //     comment: Yup.string(),
+  //     source: Yup.string(),
+  //   })
+  // ),
   // You can add further validations for other sections as needed.
 });
 
@@ -191,12 +192,12 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <label htmlFor="productionDetails.production_timeframe">Timeframe:</label>
           <Field name="productionDetails.production_timeframe" type="text" />
         </div>
-        <div>
+        {/* <div>
           <label htmlFor="productionDetails.shooting_location_id">
             Shooting Location ID:
           </label>
           <Field name="productionDetails.shooting_location_id" type="number" />
-        </div>
+        </div> */}
         <div>
           <label htmlFor="productionDetails.post_production_studio">
             Post Production Studio:
@@ -354,12 +355,12 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <label htmlFor="institutionalInfo.source">Source:</label>
           <Field name="institutionalInfo.source" type="text" />
         </div>
-        <div>
+        {/* <div>
           <label htmlFor="institutionalInfo.funding_location_id">
             Funding Location ID:
           </label>
           <Field name="institutionalInfo.funding_location_id" type="number" />
-        </div>
+        </div> */}
       </fieldset>
 
       {/* Screenings handled as an array */}
@@ -384,13 +385,13 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
                         <div className="error">{screeningDateError}</div>
                       )}
                     </div>
-                    <div>
+                    {/* <div>
                       <label htmlFor={`screenings.${index}.location_id`}>Location ID:</label>
                       <Field name={`screenings.${index}.location_id`} type="number" />
                       {locationIdError && locationIdTouched && (
                         <div className="error">{locationIdError}</div>
                       )}
-                    </div>
+                    </div> */}
                     <div>
                       <label htmlFor={`screenings.${index}.organizers`}>Organizers:</label>
                       <Field name={`screenings.${index}.organizers`} type="text" />
@@ -430,7 +431,7 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
                 onClick={() =>
                   push({
                     screening_date: '',
-                    location_id: '',
+                    location_id: 1,
                     organizers: '',
                     format: '',
                     audience: '',
@@ -461,6 +462,7 @@ const renderForm = (
   setIsDirty: (dirty: boolean) => void
 ) => (
   <Formik
+  key={JSON.stringify(initialVals)} // forces remount when initialVals change
     initialValues={initialVals}
     validationSchema={validationSchema}
     onSubmit={onSubmit}
@@ -642,6 +644,8 @@ const AdminDashboard: React.FC = () => {
         throw new Error(errorData.error);
       }
       setMessage('Film updated successfully!');
+      setUpdateInitialValues(values);
+
       actions.resetForm();
       setIsDirty(false);
     } catch (error: any) {
@@ -687,6 +691,12 @@ const AdminDashboard: React.FC = () => {
           Delete Film
         </button>
       </div>
+      {message && (
+      <NotificationPopup 
+        message={message} 
+        onClose={() => setMessage('')}
+      />
+    )}
       <div className="admin-content">
         {message && <p className="message">{message}</p>}
         {activeTab === 'add' &&

@@ -190,7 +190,7 @@ const HomePage: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
-        <select 
+        {/* <select 
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value)}
           className="sort-dropdown"
@@ -198,7 +198,7 @@ const HomePage: React.FC = () => {
           <option value="year">Year</option>
           <option value="genre">Genre</option>
           <option value="popularity">Popularity</option>
-        </select>
+        </select> */}
         <button className="export-btn" onClick={handleExportCSV}>
     Export as CSV
   </button>
