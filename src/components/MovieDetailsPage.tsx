@@ -58,6 +58,7 @@ interface MovieDetails {
   institutionalInfo: InstitutionalInfo;
   documents: { document_type: string; file_url: string; comment?: string }[];
   gallery: string[];
+  av_annotate_link: string;
   screenings: Screening[];
 }
 
@@ -129,6 +130,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         },
         documents: data.documents || [],
         gallery: data.film.gallery || [],
+        av_annotate_link: data.film.av_annotate_link || '',
       };
 
       setMovie(fetchedMovie);
@@ -379,6 +381,35 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
             )}
           </div>
         );
+        case 'avLink':
+          return (
+            <div className="tab-content">
+              {movie.av_annotate_link ? (
+                <a href={movie.av_annotate_link} target="_blank" rel="noopener noreferrer">
+                  {movie.av_annotate_link}
+                </a>
+              ) : (
+                <p>No AV Annotate link available.</p>
+              )}
+            </div>
+          );
+          case 'gallery':
+    return (
+      <div className="tab-content gallery">
+        {movie?.gallery?.length ? (
+          movie.gallery.map((img: string, index: number) => (
+            <img
+              key={index}
+              src={img}
+              alt={`Still ${index + 1}`}
+              className="gallery-image"
+            />
+          ))
+        ) : (
+          <p>No gallery images available.</p>
+        )}
+      </div>
+    );
       default:
         return null;
     }
@@ -424,6 +455,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         >
           Gallery
         </button>
+        <button className={`tab-button ${activeTab === 'avLink' ? 'active' : ''}`} onClick={() => setActiveTab('avLink')}>
+    AV Annotate Link
+  </button>
       </div>
       <div className="tab-panel">{renderTabContent()}</div>
     </div>

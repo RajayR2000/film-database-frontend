@@ -31,6 +31,7 @@ export interface FilmFormData {
   release_year: string;
   runtime: string;
   synopsis: string;
+  av_annotate_link : string;
   productionDetails: {
     production_timeframe: string;
     shooting_location_id: number;
@@ -84,6 +85,7 @@ const initialValues: FilmFormData = {
   release_year: '',
   runtime: '',
   synopsis: '',
+  av_annotate_link: '',
   productionDetails: {
     production_timeframe: '',
     shooting_location_id: 1,
@@ -184,6 +186,14 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <div className="error">{getIn(errors, 'synopsis')}</div>
         )}
       </div>
+      <div>
+      <label htmlFor="av_annotate_link">AV Annotate Link:</label>
+      <Field name="av_annotate_link" type="text" />
+      {getIn(errors, 'av_annotate_link') && getIn(touched, 'av_annotate_link') && (
+        <div className="error">{getIn(errors, 'av_annotate_link')}</div>
+      )}
+    </div>
+
 
       {/* Production Details */}
       <fieldset>
@@ -533,6 +543,7 @@ const AdminDashboard: React.FC = () => {
         release_year: data.film.release_year.toString(),
         runtime: data.film.runtime,
         synopsis: data.film.synopsis,
+        av_annotate_link: data.film.av_annotate_link,
         productionDetails: {
           production_timeframe: data.productionDetails?.production_timeframe || '',
           shooting_location_id: data.productionDetails?.shooting_location_id?.toString() || '',
