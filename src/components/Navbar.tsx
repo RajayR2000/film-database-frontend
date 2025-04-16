@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import LoginModal from './LoginModal';
 import NotificationPopup from './NotificationPopup';
+import ConfirmationDialog from './ConfirmationDialog';
 import '../styles/Navbar.css';
 
 interface NavbarProps {
@@ -21,27 +22,33 @@ const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
-
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    setIsLoggedIn(false);
-  };
 
   const handleLoginClick = () => {
     setShowLoginModal(true);
   };
 
-  // This function is called when the login modal is closed.
-  // If the token exists, it sets the logged-in state and triggers the popup.
   const handleModalClose = () => {
     setShowLoginModal(false);
     if (localStorage.getItem('accessToken')) {
       setIsLoggedIn(true);
       setShowNotification(true);
     }
+  };
+
+  const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const doLogout = () => {
+    localStorage.removeItem('accessToken');
+    setIsLoggedIn(false);
+    setShowLogoutConfirm(false);
+    setShowNotification(true);
+    navigate('/');
   };
 
   return (
@@ -51,20 +58,14 @@ const Navbar: React.FC<NavbarProps> = ({
           <Link to="/">Early African Films</Link>
         </div>
         <ul className="navbar-menu">
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/contact">Contact</Link>
-          </li>
-          {/* Show admin link only if user is an admin */}
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/contact">Contact</Link></li>
           {isLoggedIn && userRole === 'admin' && (
-            <li>
-              <Link to="/admin">Admin</Link>
-            </li>
+            <li><Link to="/admin">Admin</Link></li>
           )}
         </ul>
         <div className="navbar-controls">
+          
           {isLoggedIn ? (
             <button onClick={handleLogout} className="dark-mode-toggle">
               Logout
@@ -74,16 +75,29 @@ const Navbar: React.FC<NavbarProps> = ({
               Login
             </button>
           )}
-    
         </div>
       </nav>
-      {showLoginModal && <LoginModal onLoginSuccess={handleModalClose} onReturnHome={handleModalClose} />}
+
+      {showLoginModal && (
+        <LoginModal
+          onLoginSuccess={handleModalClose}
+          onReturnHome={handleModalClose}
+        />
+      )}
+
       {showNotification && (
         <NotificationPopup
-          message="Successfully logged in!"
+          message={isLoggedIn ? 'Successfully logged in!' : 'Successfully logged out!'}
           onClose={() => setShowNotification(false)}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={showLogoutConfirm}
+        message="Are you sure you want to log out?"
+        onConfirm={doLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </>
   );
 };

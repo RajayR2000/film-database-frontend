@@ -12,6 +12,7 @@ import * as Yup from 'yup';
 import '../styles/AdminFilms.css';
 import NotificationPopup from './NotificationPopup';
 import { apiFetch } from '../apifetch';
+import ConfirmationDialog from './ConfirmationDialog';
 
 // Interface for Screening objects.
 export interface Screening {
@@ -488,9 +489,9 @@ const AdminDashboard: React.FC = () => {
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [filmIdToDelete, setFilmIdToDelete] = useState<number | null>(null);
-  
+  const [showConfirm, setShowConfirm] = useState(false);
+
   // For update mode.
   const [films, setFilms] = useState<FilmListItem[]>([]);
   const [selectedFilmId, setSelectedFilmId] = useState<string>(''); // Now defined.
@@ -584,7 +585,33 @@ const AdminDashboard: React.FC = () => {
       setMessage('Error loading film data: ' + error.message);
     }
   };
-
+  const doDelete = async () => {
+    if (filmIdToDelete === null) return;
+    try {
+      const res = await apiFetch(
+        `http://localhost:3001/films/${filmIdToDelete}`, 
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: localStorage.getItem('accessToken')
+              ? `Bearer ${localStorage.getItem('accessToken')}`
+              : '',
+          },
+        }
+      );
+      if (!res.ok) {
+        setMessage('Failed to delete film');
+      } else {
+        setMessage('Film deleted successfully!');
+        loadFilmsList();
+      }
+    } catch (err: any) {
+      setMessage('Error deleting film: ' + err.message);
+    } finally {
+      setShowConfirm(false);
+      setFilmIdToDelete(null);
+    }
+  };
   // Warn user about unsaved changes.
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -666,7 +693,11 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  
+  const handleDeleteClick = (id: number) => {
+    setFilmIdToDelete(id);
+    setShowConfirm(true);
+  };
+
   return (
     <div className="admin-dashboard">
       {/* <h1>Admin Dashboard</h1> */}
@@ -771,8 +802,7 @@ const AdminDashboard: React.FC = () => {
             <button
               className="btn-delete"
               onClick={() => {
-                setFilmIdToDelete(film.film_id);
-                setShowConfirmDialog(true);
+                handleDeleteClick(film.film_id);
               }}
             >
               Delete
@@ -780,54 +810,17 @@ const AdminDashboard: React.FC = () => {
           </li>
         ))}
     </ul>
-    {showConfirmDialog && (
-      <div className="confirm-overlay">
-        <div className="confirm-dialog">
-          <p>Are you sure you want to delete this film?</p>
-          <div className="confirm-buttons">
-            <button
-              className="btn-confirm"
-              onClick={async () => {
-                if (filmIdToDelete !== null) {
-                  try {
-                    const res = await apiFetch(`http://localhost:3001/films/${filmIdToDelete}`, {
-                      method: 'DELETE',
-                      headers: {
-                        Authorization: localStorage.getItem('accessToken')
-                          ? `Bearer ${localStorage.getItem('accessToken')}`
-                          : '',
-                      },
-                    });
-                    if (!res.ok) {
-                      setMessage('Failed to delete film');
-                    } else {
-                      setMessage('Film deleted successfully!');
-                      loadFilmsList(); // Reload the films list after deletion.
-                    }
-                  } catch (error: any) {
-                    setMessage('Error deleting film: ' + error.message);
-                  } finally {
-                    setShowConfirmDialog(false);
-                    setFilmIdToDelete(null);
-                  }
-                }
-              }}
-            >
-              Confirm
-            </button>
-            <button
-              className="btn-cancel"
-              onClick={() => {
-                setShowConfirmDialog(false);
-                setFilmIdToDelete(null);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+    <ConfirmationDialog
+        isOpen={showConfirm}
+        message="Are you sure you want to delete this film?"
+        confirmText="Yes, delete"
+        cancelText="No, keep it"
+        onConfirm={doDelete}
+        onCancel={() => {
+          setShowConfirm(false);
+          setFilmIdToDelete(null);
+        }}
+      />
   </div>
 )}
 
