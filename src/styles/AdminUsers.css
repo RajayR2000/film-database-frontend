@@ -252,4 +252,37 @@
   .btn-cancel:hover {
     background-color: #444;
   }
-  
+  /* Update Button */
+.btn-update {
+  background-color: #d4af37;
+  border: none;
+  border-radius: 5px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #222;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-right: 0.5rem;
+}
+
+.btn-update:hover {
+  background-color: #c39d34;
+}
+
+/* Cancel Button */
+.btn-cancel {
+  background-color: #555;
+  border: none;
+  border-radius: 5px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background-color: #444;
+}

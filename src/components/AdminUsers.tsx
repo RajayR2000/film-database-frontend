@@ -2,39 +2,59 @@ import React, { useState, useEffect } from 'react';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import NotificationPopup from './NotificationPopup';
+import ConfirmationDialog from './ConfirmationDialog';
 import { apiFetch } from '../apifetch';
 import '../styles/AdminUsers.css';
 
-// --- Type definitions ---
 interface User {
   user_id?: number;
   username: string;
-  password: string;
-  role: string; // New users will be assigned the role 'reader'
-  active?: boolean; // Optional flag for soft deletion
+  role: string;
 }
 
-// --- Validation Schema for Users ---
-const userValidationSchema = Yup.object().shape({
+interface AddUserForm {
+  username: string;
+  password: string;
+}
+
+interface UpdateUserForm {
+  username: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+const addUserSchema = Yup.object().shape({
   username: Yup.string().required('Username required'),
   password: Yup.string().required('Password required'),
 });
 
-// --- Initial values for adding a new user ---
-const initialUserValues: User = {
+const updateUserSchema = Yup.object().shape({
+  username: Yup.string().required('Username required'),
+  newPassword: Yup.string().required('New password required'),
+  confirmNewPassword: Yup.string()
+    .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+    .required('Confirm your new password'),
+});
+
+const initialAddValues: AddUserForm = {
   username: '',
   password: '',
-  role: 'reader', // role is set as 'reader'
 };
 
 const AdminUsers: React.FC = () => {
-  // This local state manages which user sub-section to show
   const [activeUserTab, setActiveUserTab] = useState<'add' | 'update' | 'delete'>('add');
   const [message, setMessage] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Load users list from the backend
+  // delete/search state
+  const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
+  const [userIdToDelete, setUserIdToDelete] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // update/search state
+  const [updateSearchTerm, setUpdateSearchTerm] = useState('');
+
   const loadUsers = async () => {
     try {
       const res = await apiFetch('http://localhost:3001/users', {
@@ -49,85 +69,89 @@ const AdminUsers: React.FC = () => {
         return;
       }
       const data = await res.json();
-      // Expecting data.users to be an array of user records
       setUsers(data.users);
-    } catch (error: any) {
-      setMessage('Error loading users: ' + error.message);
+    } catch (err: any) {
+      setMessage('Error loading users: ' + err.message);
     }
   };
 
-  // Refresh users when this section loads or when a tab changes
   useEffect(() => {
     loadUsers();
+    setSelectedUser(null);
+    setMessage('');
+    setDeleteSearchTerm('');
+    setUserIdToDelete(null);
+    setShowDeleteConfirm(false);
+    setUpdateSearchTerm('');
   }, [activeUserTab]);
 
-  // --- Handler: Add a new user ---
-  const onAddUserSubmit = async (values: User, actions: any) => {
+  // --- Add user ---
+  const onAddUserSubmit = async (vals: AddUserForm, actions: any) => {
     try {
-      // Ensure role is set to 'reader' regardless of what is passed in
-      const newUser = { ...values, role: 'reader' };
       const res = await apiFetch('http://localhost:3001/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify({ ...vals, role: 'reader' }),
       });
       if (!res.ok) {
-        const errorData = await res.json();
-        actions.setErrors({ username: errorData.error || 'Submission error' });
-        setMessage(errorData.error || 'Submission error');
+        const err = await res.json();
+        actions.setErrors({ username: err.error || 'Submission error' });
+        setMessage(err.error || 'Submission error');
         return;
       }
       setMessage('User added successfully!');
       actions.resetForm();
       loadUsers();
-    } catch (error: any) {
-      setMessage(error.message);
+    } catch (err: any) {
+      setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
     }
   };
 
-  // --- Handler: Update a user ---
-  const onUpdateUserSubmit = async (values: User, actions: any) => {
+  // --- Update user ---
+  const onUpdateUserSubmit = async (vals: UpdateUserForm, actions: any) => {
+    if (!selectedUser?.user_id) {
+      setMessage('No user selected');
+      actions.setSubmitting(false);
+      return;
+    }
     try {
-      if (!selectedUser || !selectedUser.user_id) {
-        setMessage('No user selected to update');
-        return;
-      }
-      // The backend should prevent duplicate usernames. It will return an error if a duplicate exists.
+      const payload = {
+        username: vals.username,
+        password: vals.newPassword,
+      };
       const res = await apiFetch(`http://localhost:3001/users/${selectedUser.user_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const errorData = await res.json();
-        actions.setErrors({ username: errorData.error || 'Submission error' });
-        setMessage(errorData.error || 'Submission error');
+        const err = await res.json();
+        actions.setErrors({ username: err.error || 'Submission error' });
+        setMessage(err.error || 'Submission error');
         return;
       }
       setMessage('User updated successfully!');
-      actions.resetForm();
       setSelectedUser(null);
       loadUsers();
-    } catch (error: any) {
-      setMessage(error.message);
+    } catch (err: any) {
+      setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
     }
   };
 
-  // --- Handler: Soft delete a user ---
-  // In a soft-delete, the backend may mark the user as inactive rather than removing the record.
-  const onDeleteUser = async (user_id: number) => {
+  // --- Delete user ---
+  const onDeleteUser = async (id: number) => {
     try {
-      const res = await apiFetch(`http://localhost:3001/users/${user_id}`, {
+      const res = await apiFetch(`http://localhost:3001/users/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: localStorage.getItem('accessToken')
@@ -141,140 +165,155 @@ const AdminUsers: React.FC = () => {
       }
       setMessage('User deleted successfully!');
       loadUsers();
-    } catch (error: any) {
-      setMessage('Error deleting user: ' + error.message);
+    } catch (err: any) {
+      setMessage('Error deleting user: ' + err.message);
     }
+  };
+
+  const handleDeleteClick = (id: number) => {
+    setUserIdToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+  const confirmDelete = () => {
+    if (userIdToDelete !== null) onDeleteUser(userIdToDelete);
+    setShowDeleteConfirm(false);
+    setUserIdToDelete(null);
   };
 
   return (
     <div className="admin-dashboard">
-      {/* <h2>Manage Users</h2> */}
-      {/* Tabs for Users Management */}
       <div className="admin-tabs">
-        <button
-          className={activeUserTab === 'add' ? 'active' : ''}
-          onClick={() => {
-            setActiveUserTab('add');
-            setMessage('');
-            setSelectedUser(null);
-          }}
-        >
-          Add User
-        </button>
-        <button
-          className={activeUserTab === 'update' ? 'active' : ''}
-          onClick={() => {
-            setActiveUserTab('update');
-            setMessage('');
-            setSelectedUser(null);
-          }}
-        >
-          Update User
-        </button>
-        <button
-          className={activeUserTab === 'delete' ? 'active' : ''}
-          onClick={() => {
-            setActiveUserTab('delete');
-            setMessage('');
-            setSelectedUser(null);
-          }}
-        >
-          Delete User
-        </button>
+        <button className={activeUserTab==='add'? 'active':''} onClick={()=>setActiveUserTab('add')}>Add User</button>
+        <button className={activeUserTab==='update'? 'active':''} onClick={()=>setActiveUserTab('update')}>Update User</button>
+        <button className={activeUserTab==='delete'? 'active':''} onClick={()=>setActiveUserTab('delete')}>Delete User</button>
       </div>
-      {message && <NotificationPopup message={message} onClose={() => setMessage('')} />}
+
+      {message && <NotificationPopup message={message} onClose={()=>setMessage('')} />}
+
       <div className="admin-content">
-        {activeUserTab === 'add' && (
+        {/* ADD */}
+        {activeUserTab==='add' && (
           <Formik
-            initialValues={initialUserValues}
-            validationSchema={userValidationSchema}
+            initialValues={initialAddValues}
+            validationSchema={addUserSchema}
             onSubmit={onAddUserSubmit}
           >
-            {({ isSubmitting, errors, touched }) => (
+            {({ isSubmitting, errors, touched })=>(
               <Form className="admin-form">
                 <div>
-                  <label htmlFor="username">Username:</label>
-                  <Field name="username" type="text" />
-                  {errors.username && touched.username && (
-                    <div className="error">{errors.username}</div>
-                  )}
+                  <label>Username:</label>
+                  <Field name="username" />
+                  {errors.username&&touched.username&&<div className="error">{errors.username}</div>}
                 </div>
                 <div>
-                  <label htmlFor="password">Password:</label>
+                  <label>Password:</label>
                   <Field name="password" type="password" />
-                  {errors.password && touched.password && (
-                    <div className="error">{errors.password}</div>
-                  )}
+                  {errors.password&&touched.password&&<div className="error">{errors.password}</div>}
                 </div>
                 <button className="btn-edit" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Submitting...' : 'Add User'}
+                  {isSubmitting?'Adding...':'Add User'}
                 </button>
               </Form>
             )}
           </Formik>
         )}
-        {activeUserTab === 'update' && (
-          <div>
+
+        {/* UPDATE */}
+        {activeUserTab==='update' && (
+          <>
             {!selectedUser ? (
-              <div>
-                <h3>Select a User to Update</h3>
+              <>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={updateSearchTerm}
+                  onChange={e => setUpdateSearchTerm(e.target.value)}
+                  className="search-bar"
+                />
                 <ul className="users-list">
-                  {users.map((user) => (
-                    <li key={user.user_id}>
-                      <span>{user.username}</span>
-                      <button  className="btn-edit" onClick={() => setSelectedUser(user)}>Edit</button>
-                    </li>
-                  ))}
+                  {users
+                    .filter(u => u.username.toLowerCase().includes(updateSearchTerm.toLowerCase()))
+                    .map(u=>(
+                      <li key={u.user_id}>
+                        <span>{u.username}</span>
+                        <button className="btn-edit" onClick={()=>setSelectedUser(u)}>Edit</button>
+                      </li>
+                    ))}
                 </ul>
-              </div>
+              </>
             ) : (
               <Formik
-                initialValues={selectedUser}
-                validationSchema={userValidationSchema}
+                initialValues={{
+                  username: selectedUser.username,
+                  newPassword: '',
+                  confirmNewPassword: '',
+                }}
+                validationSchema={updateUserSchema}
                 onSubmit={onUpdateUserSubmit}
-                enableReinitialize={true}
               >
-                {({ isSubmitting, errors, touched }) => (
+                {({ isSubmitting, errors, touched })=>(
                   <Form className="admin-form">
                     <div>
-                      <label htmlFor="username">Username:</label>
-                      <Field name="username" type="text" />
-                      {errors.username && touched.username && (
-                        <div className="error">{errors.username}</div>
-                      )}
+                      <label>Username:</label>
+                      <Field name="username" />
+                      {errors.username&&touched.username&&<div className="error">{errors.username}</div>}
                     </div>
                     <div>
-                      <label htmlFor="password">Password:</label>
-                      <Field name="password" type="password" />
-                      {errors.password && touched.password && (
-                        <div className="error">{errors.password}</div>
-                      )}
+                      <label>New Password:</label>
+                      <Field name="newPassword" type="password" />
+                      {errors.newPassword&&touched.newPassword&&<div className="error">{errors.newPassword}</div>}
                     </div>
-                    <button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Submitting...' : 'Update User'}
+                    <div>
+                      <label>Confirm New Password:</label>
+                      <Field name="confirmNewPassword" type="password" />
+                      {errors.confirmNewPassword&&touched.confirmNewPassword&&<div className="error">{errors.confirmNewPassword}</div>}
+                    </div>
+                    <button className="btn-update" type="submit" disabled={isSubmitting}>
+                      {isSubmitting?'Updating...':'Update User'}
                     </button>
-                    <button type="button" onClick={() => setSelectedUser(null)}>
+                    <button className="btn-cancel" type="button" onClick={()=>setSelectedUser(null)}>
                       Cancel
                     </button>
                   </Form>
                 )}
               </Formik>
             )}
-          </div>
+          </>
         )}
-        {activeUserTab === 'delete' && (
-          <div>
-            <h3>Select a User to Delete</h3>
+
+        {/* DELETE */}
+        {activeUserTab==='delete' && (
+          <>
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={deleteSearchTerm}
+              onChange={e=>setDeleteSearchTerm(e.target.value)}
+              className="search-bar"
+            />
             <ul className="users-list">
-              {users.map((user) => (
-                <li key={user.user_id}>
-                  <span>{user.username}</span>
-                  <button className="btn-delete" onClick={() => onDeleteUser(user.user_id!)}>Delete</button>
-                </li>
-              ))}
+              {users
+                .filter(u=>u.username.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
+                .map(u=>(
+                  <li key={u.user_id}>
+                    <span>{u.username}</span>
+                    <button className="btn-delete" onClick={()=>handleDeleteClick(u.user_id!)}>
+                      Delete
+                    </button>
+                  </li>
+                ))}
             </ul>
-          </div>
+          </>
         )}
+
+        <ConfirmationDialog
+          isOpen={showDeleteConfirm}
+          message="Are you sure you want to delete this user?"
+          confirmText="Yes, delete"
+          cancelText="No, keep"
+          onConfirm={confirmDelete}
+          onCancel={()=>setShowDeleteConfirm(false)}
+        />
       </div>
     </div>
   );
