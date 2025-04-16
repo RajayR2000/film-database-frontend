@@ -17,7 +17,8 @@ import ConfirmationDialog from './ConfirmationDialog';
 // Interface for Screening objects.
 export interface Screening {
   screening_date: string;
-  location_id: number;
+  screening_city: string;
+  screening_country: string;
   organizers: string;
   format: string;
   audience: string;
@@ -29,13 +30,14 @@ export interface Screening {
 // Interface for full film form data.
 export interface FilmFormData {
   title: string;
-  release_year: string;
+  release_year: null;
   runtime: string;
   synopsis: string;
-  av_annotate_link : string;
+  av_annotate_link: string;
   productionDetails: {
     production_timeframe: string;
-    shooting_location_id: number;
+    shooting_city: string;
+    shooting_country: string;
     post_production_studio: string;
     production_comments: string;
   };
@@ -69,7 +71,8 @@ export interface FilmFormData {
     funding_company: string;
     funding_comment: string;
     source: string;
-    funding_location_id: number;
+    institutional_city: string;
+    institutional_country: string;
   };
   screenings: Screening[];
 }
@@ -83,13 +86,14 @@ interface FilmListItem {
 // Initial values for adding a new film.
 const initialValues: FilmFormData = {
   title: '',
-  release_year: '',
+  release_year: null,
   runtime: '',
   synopsis: '',
   av_annotate_link: '',
   productionDetails: {
     production_timeframe: '',
-    shooting_location_id: 1,
+    shooting_city: '',
+    shooting_country: '',
     post_production_studio: '',
     production_comments: '',
   },
@@ -110,47 +114,51 @@ const initialValues: FilmFormData = {
     funding_company: '',
     funding_comment: '',
     source: '',
-    funding_location_id: 1,
+    institutional_city: '',
+    institutional_country: '',
   },
-  // Start with one empty screening object.
   screenings: [
-    { screening_date: '', location_id: 1, organizers: '', format: '', audience: '', film_rights: '', comment: '', source: '' }
+    {
+      screening_date: '',
+      screening_city: '',
+      screening_country: '',
+      organizers: '',
+      format: '',
+      audience: '',
+      film_rights: '',
+      comment: '',
+      source: '',
+    },
   ],
 };
 
 // Yup validation schema.
 const validationSchema = Yup.object().shape({
-  // title: Yup.string(),
-  // release_year: Yup.number()
-  //   .typeError('Release year must be a number'),
-  // runtime: Yup.string(),
-  // synopsis: Yup.string(),
-  // productionTeam: Yup.array().of(
-  //   Yup.object().shape({
-  //     department: Yup.string(),
-  //     name: Yup.string(),
-  //     role: Yup.string(),
-  //     comment: Yup.string(),
-  //   })
-  // ),
-  // screenings: Yup.array().of(
-  //   Yup.object().shape({
-  //     screening_date: Yup.string(),
-  //     location_id: Yup.string(),
-  //     organizers: Yup.string(),
-  //     format: Yup.string(),
-  //     audience: Yup.string(),
-  //     film_rights: Yup.string(),
-  //     comment: Yup.string(),
-  //     source: Yup.string(),
-  //   })
-  // ),
-  // You can add further validations for other sections as needed.
+    release_year: Yup.number()
+    .nullable()
+    //   productionDetails: Yup.object().shape({
+//     shooting_city: Yup.string().required('City is required'),
+//     shooting_country: Yup.string().required('Country is required'),
+//   }),
+//   institutionalInfo: Yup.object().shape({
+//     institutional_city: Yup.string().required('City is required'),
+//     institutional_country: Yup.string().required('Country is required'),
+//   }),
+//   screenings: Yup.array().of(
+//     Yup.object().shape({
+//       screening_city: Yup.string().required('City is required'),
+//       screening_country: Yup.string().required('Country is required'),
+//     })
+//   ),
+  // Additional validations can be added here...
 });
 
 // Child component to render form content and track dirty state.
-const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIsDirty }) => {
-  const { dirty, errors, touched, isSubmitting } = useFormikContext<FilmFormData>();
+const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
+  setIsDirty,
+}) => {
+  const { dirty, errors, touched, isSubmitting } =
+    useFormikContext<FilmFormData>();
 
   useEffect(() => {
     setIsDirty(dirty);
@@ -162,62 +170,75 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
       <div>
         <label htmlFor="title">Title:</label>
         <Field name="title" type="text" />
-        {getIn(errors, 'title') && getIn(touched, 'title') && (
-          <div className="error">{getIn(errors, 'title')}</div>
-        )}
       </div>
       <div>
         <label htmlFor="release_year">Release Year:</label>
         <Field name="release_year" type="number" />
-        {getIn(errors, 'release_year') && getIn(touched, 'release_year') && (
-          <div className="error">{getIn(errors, 'release_year')}</div>
-        )}
       </div>
       <div>
         <label htmlFor="runtime">Runtime:</label>
         <Field name="runtime" type="text" />
-        {getIn(errors, 'runtime') && getIn(touched, 'runtime') && (
-          <div className="error">{getIn(errors, 'runtime')}</div>
-        )}
       </div>
       <div>
         <label htmlFor="synopsis">Synopsis:</label>
         <Field name="synopsis" as="textarea" />
-        {getIn(errors, 'synopsis') && getIn(touched, 'synopsis') && (
-          <div className="error">{getIn(errors, 'synopsis')}</div>
-        )}
       </div>
       <div>
-      <label htmlFor="av_annotate_link">AV Annotate Link:</label>
-      <Field name="av_annotate_link" type="text" />
-      {getIn(errors, 'av_annotate_link') && getIn(touched, 'av_annotate_link') && (
-        <div className="error">{getIn(errors, 'av_annotate_link')}</div>
-      )}
-    </div>
-
+        <label htmlFor="av_annotate_link">AV Annotate Link:</label>
+        <Field name="av_annotate_link" type="text" />
+      </div>
 
       {/* Production Details */}
       <fieldset>
         <legend>Production Details</legend>
         <div>
-          <label htmlFor="productionDetails.production_timeframe">Timeframe:</label>
-          <Field name="productionDetails.production_timeframe" type="text" />
-        </div>
-        {/* <div>
-          <label htmlFor="productionDetails.shooting_location_id">
-            Shooting Location ID:
+          <label htmlFor="productionDetails.production_timeframe">
+            Timeframe:
           </label>
-          <Field name="productionDetails.shooting_location_id" type="number" />
-        </div> */}
+          <Field
+            name="productionDetails.production_timeframe"
+            type="text"
+          />
+        </div>
+        <div>
+          <label htmlFor="productionDetails.shooting_city">City:</label>
+          <Field name="productionDetails.shooting_city" type="text" />
+          {getIn(errors, 'productionDetails.shooting_city') &&
+            getIn(touched, 'productionDetails.shooting_city') && (
+              <div className="error">
+                {getIn(errors, 'productionDetails.shooting_city')}
+              </div>
+            )}
+        </div>
+        <div>
+          <label htmlFor="productionDetails.shooting_country">
+            Country:
+          </label>
+          <Field name="productionDetails.shooting_country" type="text" />
+          {getIn(errors, 'productionDetails.shooting_country') &&
+            getIn(touched, 'productionDetails.shooting_country') && (
+              <div className="error">
+                {getIn(errors, 'productionDetails.shooting_country')}
+              </div>
+            )}
+        </div>
         <div>
           <label htmlFor="productionDetails.post_production_studio">
             Post Production Studio:
           </label>
-          <Field name="productionDetails.post_production_studio" type="text" />
+          <Field
+            name="productionDetails.post_production_studio"
+            type="text"
+          />
         </div>
         <div>
-          <label htmlFor="productionDetails.production_comments">Comments:</label>
-          <Field name="productionDetails.production_comments" as="textarea" />
+          <label htmlFor="productionDetails.production_comments">
+            Comments:
+          </label>
+          <Field
+            name="productionDetails.production_comments"
+            as="textarea"
+          />
         </div>
       </fieldset>
 
@@ -229,7 +250,9 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <Field name="authors.screenwriter" type="text" />
         </div>
         <div>
-          <label htmlFor="authors.screenwriter_comment">Screenwriter Comment:</label>
+          <label htmlFor="authors.screenwriter_comment">
+            Screenwriter Comment:
+          </label>
           <Field name="authors.screenwriter_comment" type="text" />
         </div>
         <div>
@@ -237,18 +260,25 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <Field name="authors.filmmaker" type="text" />
         </div>
         <div>
-          <label htmlFor="authors.filmmaker_comment">Filmmaker Comment:</label>
+          <label htmlFor="authors.filmmaker_comment">
+            Filmmaker Comment:
+          </label>
           <Field name="authors.filmmaker_comment" type="text" />
         </div>
         <div>
-          <label htmlFor="authors.executive_producer">Executive Producer:</label>
+          <label htmlFor="authors.executive_producer">
+            Executive Producer:
+          </label>
           <Field name="authors.executive_producer" type="text" />
         </div>
         <div>
           <label htmlFor="authors.executive_producer_comment">
             Executive Producer Comment:
           </label>
-          <Field name="authors.executive_producer_comment" type="text" />
+          <Field
+            name="authors.executive_producer_comment"
+            type="text"
+          />
         </div>
       </fieldset>
 
@@ -258,44 +288,72 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
         <FieldArray name="productionTeam">
           {({ push, remove, form }) => (
             <div>
-              {form.values.productionTeam.map((_: any, index: number) => {
-                const deptError = getIn(form.errors, `productionTeam.${index}.department`);
-                const deptTouched = getIn(form.touched, `productionTeam.${index}.department`);
-                const nameError = getIn(form.errors, `productionTeam.${index}.name`);
-                const nameTouched = getIn(form.touched, `productionTeam.${index}.name`);
-                return (
-                  <div key={index} className="production-team-member">
-                    <div>
-                      <label htmlFor={`productionTeam.${index}.department`}>
-                        Department:
-                      </label>
-                      <Field name={`productionTeam.${index}.department`} type="text" />
-                      {deptError && deptTouched && (
-                        <div className="error">{deptError}</div>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor={`productionTeam.${index}.name`}>Name:</label>
-                      <Field name={`productionTeam.${index}.name`} type="text" />
-                      {nameError && nameTouched && (
-                        <div className="error">{nameError}</div>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor={`productionTeam.${index}.role`}>Role:</label>
-                      <Field name={`productionTeam.${index}.role`} type="text" />
-                    </div>
-                    <div>
-                      <label htmlFor={`productionTeam.${index}.comment`}>Comment:</label>
-                      <Field name={`productionTeam.${index}.comment`} as="textarea" />
-                    </div>
-                    <button type="button" className="btn-remove" onClick={() => remove(index)}>
-                      Remove
-                    </button>
+              {form.values.productionTeam.map((_: any, index:any) => (
+                <div
+                  key={index}
+                  className="production-team-member"
+                >
+                  <div>
+                    <label
+                      htmlFor={`productionTeam.${index}.department`}
+                    >
+                      Department:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.department`}
+                      type="text"
+                    />
                   </div>
-                );
-              })}
-              <button type="button" className="btn-add" onClick={() => push({ department: '', name: '', role: '', comment: '' })}>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.name`}>
+                      Name:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.name`}
+                      type="text"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`productionTeam.${index}.role`}>
+                      Role:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.role`}
+                      type="text"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor={`productionTeam.${index}.comment`}
+                    >
+                      Comment:
+                    </label>
+                    <Field
+                      name={`productionTeam.${index}.comment`}
+                      as="textarea"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-remove"
+                    onClick={() => remove(index)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-add"
+                onClick={() =>
+                  push({
+                    department: '',
+                    name: '',
+                    role: '',
+                    comment: '',
+                  })
+                }
+              >
                 Add Production Team Member
               </button>
             </div>
@@ -315,7 +373,9 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
       <fieldset>
         <legend>Film Equipment</legend>
         <div>
-          <label htmlFor="equipment.equipment_name">Equipment Name:</label>
+          <label htmlFor="equipment.equipment_name">
+            Equipment Name:
+          </label>
           <Field name="equipment.equipment_name" type="text" />
         </div>
         <div>
@@ -332,7 +392,9 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
       <fieldset>
         <legend>Film Documents</legend>
         <div>
-          <label htmlFor="documents.document_type">Document Type:</label>
+          <label htmlFor="documents.document_type">
+            Document Type:
+          </label>
           <Field name="documents.document_type" type="text" />
         </div>
         <div>
@@ -352,97 +414,178 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
           <label htmlFor="institutionalInfo.production_company">
             Production Company:
           </label>
-          <Field name="institutionalInfo.production_company" type="text" />
+          <Field
+            name="institutionalInfo.production_company"
+            type="text"
+          />
         </div>
         <div>
-          <label htmlFor="institutionalInfo.funding_company">Funding Company:</label>
-          <Field name="institutionalInfo.funding_company" type="text" />
+          <label htmlFor="institutionalInfo.funding_company">
+            Funding Company:
+          </label>
+          <Field
+            name="institutionalInfo.funding_company"
+            type="text"
+          />
         </div>
         <div>
-          <label htmlFor="institutionalInfo.funding_comment">Funding Comment:</label>
-          <Field name="institutionalInfo.funding_comment" as="textarea" />
+          <label htmlFor="institutionalInfo.funding_comment">
+            Funding Comment:
+          </label>
+          <Field
+            name="institutionalInfo.funding_comment"
+            as="textarea"
+          />
         </div>
         <div>
           <label htmlFor="institutionalInfo.source">Source:</label>
           <Field name="institutionalInfo.source" type="text" />
         </div>
-        {/* <div>
-          <label htmlFor="institutionalInfo.funding_location_id">
-            Funding Location ID:
+        <div>
+          <label htmlFor="institutionalInfo.institutional_city">
+            City:
           </label>
-          <Field name="institutionalInfo.funding_location_id" type="number" />
-        </div> */}
+          <Field
+            name="institutionalInfo.institutional_city"
+            type="text"
+          />
+          {getIn(errors, 'institutionalInfo.institutional_city') &&
+            getIn(touched, 'institutionalInfo.institutional_city') && (
+              <div className="error">
+                {getIn(errors, 'institutionalInfo.institutional_city')}
+              </div>
+            )}
+        </div>
+        <div>
+          <label htmlFor="institutionalInfo.institutional_country">
+            Country:
+          </label>
+          <Field
+            name="institutionalInfo.institutional_country"
+            type="text"
+          />
+          {getIn(errors, 'institutionalInfo.institutional_country') &&
+            getIn(
+              touched,
+              'institutionalInfo.institutional_country'
+            ) && (
+              <div className="error">
+                {getIn(
+                  errors,
+                  'institutionalInfo.institutional_country'
+                )}
+              </div>
+            )}
+        </div>
       </fieldset>
 
-      {/* Screenings handled as an array */}
+      {/* Screenings */}
       <fieldset>
         <legend>Film Screenings</legend>
         <FieldArray name="screenings">
           {({ push, remove, form }) => (
-            <div>
-              {form.values.screenings.map((_: any, index: number) => {
-                const screeningDateError = getIn(form.errors, `screenings.${index}.screening_date`);
-                const screeningDateTouched = getIn(form.touched, `screenings.${index}.screening_date`);
-                const locationIdError = getIn(form.errors, `screenings.${index}.location_id`);
-                const locationIdTouched = getIn(form.touched, `screenings.${index}.location_id`);
-                const organizersError = getIn(form.errors, `screenings.${index}.organizers`);
-                const organizersTouched = getIn(form.touched, `screenings.${index}.organizers`);
-                return (
-                  <div key={index} className="screening-member">
-                    <div>
-                      <label htmlFor={`screenings.${index}.screening_date`}>Screening Date:</label>
-                      <Field name={`screenings.${index}.screening_date`} type="date" />
-                      {screeningDateError && screeningDateTouched && (
-                        <div className="error">{screeningDateError}</div>
-                      )}
-                    </div>
-                    {/* <div>
-                      <label htmlFor={`screenings.${index}.location_id`}>Location ID:</label>
-                      <Field name={`screenings.${index}.location_id`} type="number" />
-                      {locationIdError && locationIdTouched && (
-                        <div className="error">{locationIdError}</div>
-                      )}
-                    </div> */}
-                    <div>
-                      <label htmlFor={`screenings.${index}.organizers`}>Organizers:</label>
-                      <Field name={`screenings.${index}.organizers`} type="text" />
-                      {organizersError && organizersTouched && (
-                        <div className="error">{organizersError}</div>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor={`screenings.${index}.format`}>Format:</label>
-                      <Field name={`screenings.${index}.format`} type="text" />
-                    </div>
-                    <div>
-                      <label htmlFor={`screenings.${index}.audience`}>Audience:</label>
-                      <Field name={`screenings.${index}.audience`} type="text" />
-                    </div>
-                    <div>
-                      <label htmlFor={`screenings.${index}.film_rights`}>Film Rights:</label>
-                      <Field name={`screenings.${index}.film_rights`} type="text" />
-                    </div>
-                    <div>
-                      <label htmlFor={`screenings.${index}.comment`}>Comment:</label>
-                      <Field name={`screenings.${index}.comment`} as="textarea" />
-                    </div>
-                    <div>
-                      <label htmlFor={`screenings.${index}.source`}>Source:</label>
-                      <Field name={`screenings.${index}.source`} type="text" />
-                    </div>
-                    <button type="button" className="btn-remove" onClick={() => remove(index)}>
-                      Remove
-                    </button>
+            <>
+              {form.values.screenings.map((_:any, index: any) => (
+                <div
+                  key={index}
+                  className="screening-member"
+                >
+                  <div>
+                    <label
+                      htmlFor={`screenings.${index}.screening_date`}
+                    >
+                      Screening Date:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_date`}
+                      type="date"
+                    />
                   </div>
-                );
-              })}
+                  <div>
+                    <label
+                      htmlFor={`screenings.${index}.screening_city`}
+                    >
+                      City:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_city`}
+                      type="text"
+                    />
+                    {getIn(
+                      errors,
+                      `screenings.${index}.screening_city`
+                    ) &&
+                      getIn(
+                        touched,
+                        `screenings.${index}.screening_city`
+                      ) && (
+                        <div className="error">
+                          {
+                            getIn(
+                              errors,
+                              `screenings.${index}.screening_city`
+                            ) as string
+                          }
+                        </div>
+                      )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor={`screenings.${index}.screening_country`}
+                    >
+                      Country:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.screening_country`}
+                      type="text"
+                    />
+                    {getIn(
+                      errors,
+                      `screenings.${index}.screening_country`
+                    ) &&
+                      getIn(
+                        touched,
+                        `screenings.${index}.screening_country`
+                      ) && (
+                        <div className="error">
+                          {
+                            getIn(
+                              errors,
+                              `screenings.${index}.screening_country`
+                            ) as string
+                          }
+                        </div>
+                      )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor={`screenings.${index}.organizers`}
+                    >
+                      Organizers:
+                    </label>
+                    <Field
+                      name={`screenings.${index}.organizers`}
+                      type="text"
+                    />
+                  </div>
+                  {/* ... other screening fields ... */}
+                  <button
+                    type="button"
+                    className="btn-remove"
+                    onClick={() => remove(index)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
               <button
                 type="button"
                 className="btn-add"
                 onClick={() =>
                   push({
                     screening_date: '',
-                    location_id: 1,
+                    screening_city: '',
+                    screening_country: '',
                     organizers: '',
                     format: '',
                     audience: '',
@@ -454,13 +597,13 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({ setIs
               >
                 Add Screening
               </button>
-            </div>
+            </>
           )}
         </FieldArray>
       </fieldset>
 
-      <button type="submit" className="btn-submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Submitting...' : 'Submit'}
+      <button type="submit" className="btn-submit">
+        Submit
       </button>
     </Form>
   );
@@ -473,31 +616,30 @@ const renderForm = (
   setIsDirty: (dirty: boolean) => void
 ) => (
   <Formik
-  key={JSON.stringify(initialVals)} // forces remount when initialVals change
     initialValues={initialVals}
     validationSchema={validationSchema}
     onSubmit={onSubmit}
-    enableReinitialize={true}
+    enableReinitialize
   >
-    {() => <FormContent setIsDirty={setIsDirty} />}
+    <FormContent setIsDirty={setIsDirty} />
   </Formik>
 );
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'add' | 'update' | 'delete'>('add');
-  const [message, setMessage] = useState<string>('');
-  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [message, setMessage] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
   const [filmIdToDelete, setFilmIdToDelete] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // For update mode.
   const [films, setFilms] = useState<FilmListItem[]>([]);
-  const [selectedFilmId, setSelectedFilmId] = useState<string>(''); // Now defined.
-  const [updateInitialValues, setUpdateInitialValues] = useState<FilmFormData | null>(null);
+  const [selectedFilmId, setSelectedFilmId] = useState<string>('');
+  const [updateInitialValues, setUpdateInitialValues] =
+    useState<FilmFormData | null>(null);
 
-  // Load films list for update mode.
+  // Load films list for update/delete
   const loadFilmsList = async () => {
     try {
       const res = await apiFetch('http://localhost:3001/films', {
@@ -513,12 +655,12 @@ const AdminDashboard: React.FC = () => {
       }
       const data = await res.json();
       setFilms(data.films);
-    } catch (error: any) {
-      setMessage('Error loading films: ' + error.message);
+    } catch (err: any) {
+      setMessage('Error loading films: ' + err.message);
     }
   };
 
-  // Load film data for update.
+  // Load single film data for update
   const loadFilmData = async (filmId: number) => {
     try {
       const res = await apiFetch(`http://localhost:3001/films/${filmId}`, {
@@ -533,72 +675,70 @@ const AdminDashboard: React.FC = () => {
         return;
       }
       const data = await res.json();
-      const screenings = data.screenings && data.screenings.length > 0
-      ? data.screenings.map((s: any) => ({
-          ...s,
-          screening_date: new Date(s.screening_date).toISOString().substring(0, 10)
-        }))
-      : [];
-      const film: FilmFormData = {
+      // Map into FilmFormData shape, including city/country fields...
+      const formData: FilmFormData = {
         title: data.film.title,
-        release_year: data.film.release_year.toString(),
+        release_year: data.film.release_year?.toString(),
         runtime: data.film.runtime,
         synopsis: data.film.synopsis,
         av_annotate_link: data.film.av_annotate_link,
         productionDetails: {
-          production_timeframe: data.productionDetails?.production_timeframe || '',
-          shooting_location_id: data.productionDetails?.shooting_location_id?.toString() || '',
-          post_production_studio: data.productionDetails?.post_production_studio || '',
-          production_comments: data.productionDetails?.production_comments || '',
+          production_timeframe: data.productionDetails.production_timeframe,
+          shooting_city: data.productionDetails.shooting_city,
+          shooting_country: data.productionDetails.shooting_country,
+          post_production_studio: data.productionDetails.post_production_studio,
+          production_comments: data.productionDetails.production_comments,
         },
         authors: {
-          screenwriter: (data.authors.find((a: any) => a.role === 'Screenwriter') || {}).name || '',
-          screenwriter_comment: (data.authors.find((a: any) => a.role === 'Screenwriter') || {}).comment || '',
-          filmmaker: (data.authors.find((a: any) => a.role === 'Filmmaker') || {}).name || '',
-          filmmaker_comment: (data.authors.find((a: any) => a.role === 'Filmmaker') || {}).comment || '',
-          executive_producer: (data.authors.find((a: any) => a.role === 'Executive Producer') || {}).name || '',
-          executive_producer_comment:
-            (data.authors.find((a: any) => a.role === 'Executive Producer') || {}).comment || '',
+          screenwriter: data.authors.find((a: any) => a.role==='Screenwriter')?.name || '',
+          screenwriter_comment: data.authors.find((a: any)=>a.role==='Screenwriter')?.comment || '',
+          filmmaker: data.authors.find((a: any)=>a.role==='Filmmaker')?.name || '',
+          filmmaker_comment: data.authors.find((a: any)=>a.role==='Filmmaker')?.comment || '',
+          executive_producer: data.authors.find((a: any)=>a.role==='Executive Producer')?.name || '',
+          executive_producer_comment: data.authors.find((a: any)=>a.role==='Executive Producer')?.comment || '',
         },
-        productionTeam: data.productionTeam || [{ department: '', name: '', role: '', comment: '' }],
-        actors: data.actors ? data.actors.map((a: any) => a.actor_name).join(', ') : '',
-        equipment:
-          data.equipment && data.equipment.length > 0
-            ? data.equipment[0]
-            : { equipment_name: '', description: '', comment: '' },
-        documents:
-          data.documents && data.documents.length > 0
-            ? data.documents[0]
-            : { document_type: '', file_url: '', comment: '' },
+        productionTeam: data.productionTeam.length ? data.productionTeam : [{ department:'',name:'',role:'',comment:'' }],
+        actors: data.actors.map((a: any)=>a.actor_name).join(', '),
+        equipment: data.equipment[0] || { equipment_name:'',description:'',comment:'' },
+        documents: data.documents[0] || { document_type:'',file_url:'',comment:'' },
         institutionalInfo: {
-          production_company: data.institutionalInfo?.production_company || '',
-          funding_company: data.institutionalInfo?.funding_company || '',
-          funding_comment: data.institutionalInfo?.funding_comment || '',
-          source: data.institutionalInfo?.source || '',
-          funding_location_id: data.institutionalInfo?.funding_location_id?.toString() || '',
+          production_company: data.institutionalInfo.production_company,
+          funding_company: data.institutionalInfo.funding_company,
+          funding_comment: data.institutionalInfo.funding_comment,
+          source: data.institutionalInfo.source,
+          institutional_city: data.institutionalInfo.institutional_city,
+          institutional_country: data.institutionalInfo.institutional_country,
         },
-        // Now screenings is handled as an array.
-        screenings      };
-      setUpdateInitialValues(film);
-      setMessage('');
-    } catch (error: any) {
-      setMessage('Error loading film data: ' + error.message);
+        screenings: data.screenings.map((s: any) => ({
+          screening_date: new Date(s.screening_date).toISOString().substr(0,10),
+          screening_city: s.screening_city,
+          screening_country: s.screening_country,
+          organizers: s.organizers,
+          format: s.format,
+          audience: s.audience,
+          film_rights: s.film_rights,
+          comment: s.comment,
+          source: s.source,
+        })),
+      };
+      setUpdateInitialValues(formData);
+    } catch (err: any) {
+      setMessage('Error loading film data: '+err.message);
     }
   };
+
+  // Delete handler
   const doDelete = async () => {
-    if (filmIdToDelete === null) return;
+    if (!filmIdToDelete) return;
     try {
-      const res = await apiFetch(
-        `http://localhost:3001/films/${filmIdToDelete}`, 
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: localStorage.getItem('accessToken')
-              ? `Bearer ${localStorage.getItem('accessToken')}`
-              : '',
-          },
-        }
-      );
+      const res = await apiFetch(`http://localhost:3001/films/${filmIdToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: localStorage.getItem('accessToken')
+            ? `Bearer ${localStorage.getItem('accessToken')}`
+            : '',
+        },
+      });
       if (!res.ok) {
         setMessage('Failed to delete film');
       } else {
@@ -606,32 +746,40 @@ const AdminDashboard: React.FC = () => {
         loadFilmsList();
       }
     } catch (err: any) {
-      setMessage('Error deleting film: ' + err.message);
+      setMessage('Error deleting film: '+err.message);
     } finally {
       setShowConfirm(false);
       setFilmIdToDelete(null);
     }
   };
-  // Warn user about unsaved changes.
+
+  // Unsaved changes warning
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handler = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
         e.returnValue = '';
       }
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  // When switching to update mode, load films list.
+  // Load list on tab change
   useEffect(() => {
-    if (activeTab === 'update' || activeTab === 'delete') {
+    if (activeTab==='update' || activeTab==='delete') {
       loadFilmsList();
+      setUpdateInitialValues(null);
     }
+    setMessage('');
+    setIsDirty(false);
+    setSearchTerm('');
+    setDeleteSearchTerm('');
+    setShowConfirm(false);
+    setFilmIdToDelete(null);
   }, [activeTab]);
 
-  // Submit handler for adding a film.
+  // Add submit
   const onAddSubmit = async (
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
@@ -640,28 +788,26 @@ const AdminDashboard: React.FC = () => {
       const res = await apiFetch('http://localhost:3001/films', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type':'application/json',
+          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
       if (!res.ok) {
-        const errorData = await res.json();
-        actions.setErrors({ title: errorData.error || 'Submission error' });
-        setMessage(errorData.error || 'Submission error');
-        throw new Error(errorData.error);
+        const err = await res.json();
+        setMessage(err.error||'Submission error');
+      } else {
+        setMessage('Film added successfully!');
+        actions.resetForm();
       }
-      setMessage('Film added successfully!');
-      actions.resetForm();
-      setIsDirty(false);
-    } catch (error: any) {
-      setMessage(error.message);
+    } catch (err: any) {
+      setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
     }
   };
 
-  // Submit handler for updating a film.
+  // Update submit
   const onUpdateSubmit = async (
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
@@ -670,104 +816,79 @@ const AdminDashboard: React.FC = () => {
       const res = await apiFetch(`http://localhost:3001/films/${selectedFilmId}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type':'application/json',
+          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
       if (!res.ok) {
-        const errorData = await res.json();
-        actions.setErrors({ title: errorData.error || 'Submission error' });
-        setMessage(errorData.error || 'Submission error');
-        throw new Error(errorData.error);
+        const err = await res.json();
+        setMessage(err.error||'Submission error');
+      } else {
+        setMessage('Film updated successfully!');
       }
-      setMessage('Film updated successfully!');
-      setUpdateInitialValues(values);
-
-      actions.resetForm();
-      setIsDirty(false);
-    } catch (error: any) {
-      setMessage(error.message);
+    } catch (err: any) {
+      setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
     }
   };
 
-  const handleDeleteClick = (id: number) => {
-    setFilmIdToDelete(id);
-    setShowConfirm(true);
-  };
-
   return (
     <div className="admin-dashboard">
-      {/* <h1>Admin Dashboard</h1> */}
       <div className="admin-tabs">
         <button
-          className={activeTab === 'add' ? 'active' : ''}
-          onClick={() => {
-            setActiveTab('add');
-            setMessage('');
-            setUpdateInitialValues(null);
-          }}
+          className={activeTab==='add'?'active':''}
+          onClick={()=>setActiveTab('add')}
         >
           Add Film
         </button>
         <button
-          className={activeTab === 'update' ? 'active' : ''}
-          onClick={() => {
-            setActiveTab('update');
-            setMessage('');
-            setUpdateInitialValues(null);
-          }}
+          className={activeTab==='update'?'active':''}
+          onClick={()=>setActiveTab('update')}
         >
           Update Film
         </button>
         <button
-          className={activeTab === 'delete' ? 'active' : ''}
-          onClick={() => {
-            setActiveTab('delete');
-            setMessage('');
-            setUpdateInitialValues(null);
-          }}
+          className={activeTab==='delete'?'active':''}
+          onClick={()=>setActiveTab('delete')}
         >
           Delete Film
         </button>
       </div>
+
       {message && (
-      <NotificationPopup 
-        message={message} 
-        onClose={() => setMessage('')}
-      />
-    )}
+        <NotificationPopup
+          message={message}
+          onClose={()=>setMessage('')}
+        />
+      )}
+
       <div className="admin-content">
-        {message && <p className="message">{message}</p>}
-        {activeTab === 'add' &&
-          renderForm(initialValues, onAddSubmit, setIsDirty)}
-        {activeTab === 'update' && (
+        {activeTab==='add' && renderForm(initialValues, onAddSubmit, setIsDirty)}
+
+        {activeTab==='update' && (
           <div className="update-section">
             {!updateInitialValues ? (
-              <div>
-                <h2>Select a Film to Update</h2>
+              <>
                 <input
                   type="text"
                   placeholder="Search by movie title..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e=>setSearchTerm(e.target.value)}
                   className="search-bar"
                 />
                 <ul className="films-list">
                   {films
-                    .filter((film) =>
-                      film.title.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((film) => (
-                      <li key={film.film_id}>
-                        <span>{film.title}</span>
+                    .filter(f=>f.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(f=>(
+                      <li key={f.film_id}>
+                        <span>{f.title}</span>
                         <button
                           className="btn-edit"
-                          onClick={() => {
-                            setSelectedFilmId(film.film_id.toString());
-                            loadFilmData(film.film_id);
+                          onClick={()=>{
+                            setSelectedFilmId(f.film_id.toString());
+                            loadFilmData(f.film_id);
                           }}
                         >
                           Edit
@@ -775,58 +896,54 @@ const AdminDashboard: React.FC = () => {
                       </li>
                     ))}
                 </ul>
-              </div>
+              </>
             ) : (
               renderForm(updateInitialValues, onUpdateSubmit, setIsDirty)
             )}
           </div>
         )}
-        {activeTab === 'delete' && (
-  <div className="delete-section">
-    <h2>Select a Film to Delete</h2>
-    <input
-      type="text"
-      placeholder="Search by movie title..."
-      value={deleteSearchTerm}
-      onChange={(e) => setDeleteSearchTerm(e.target.value)}
-      className="search-bar"
-    />
-    <ul className="films-list">
-      {films
-        .filter((film) =>
-          film.title.toLowerCase().includes(deleteSearchTerm.toLowerCase())
-        )
-        .map((film) => (
-          <li key={film.film_id}>
-            <span>{film.title}</span>
-            <button
-              className="btn-delete"
-              onClick={() => {
-                handleDeleteClick(film.film_id);
+
+        {activeTab==='delete' && (
+          <div className="delete-section">
+            <input
+              type="text"
+              placeholder="Search by movie title..."
+              value={deleteSearchTerm}
+              onChange={e=>setDeleteSearchTerm(e.target.value)}
+              className="search-bar"
+            />
+            <ul className="films-list">
+              {films
+                .filter(f=>f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
+                .map(f=>(
+                  <li key={f.film_id}>
+                    <span>{f.title}</span>
+                    <button
+                      className="btn-delete"
+                      onClick={()=>{
+                        setFilmIdToDelete(f.film_id);
+                        setShowConfirm(true);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+            </ul>
+
+            <ConfirmationDialog
+              isOpen={showConfirm}
+              message="Are you sure you want to delete this film?"
+              confirmText="Yes, delete"
+              cancelText="No, keep it"
+              onConfirm={doDelete}
+              onCancel={()=>{
+                setShowConfirm(false);
+                setFilmIdToDelete(null);
               }}
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-    </ul>
-    <ConfirmationDialog
-        isOpen={showConfirm}
-        message="Are you sure you want to delete this film?"
-        confirmText="Yes, delete"
-        cancelText="No, keep it"
-        onConfirm={doDelete}
-        onCancel={() => {
-          setShowConfirm(false);
-          setFilmIdToDelete(null);
-        }}
-      />
-  </div>
-)}
-
-
-       
-
+            />
+          </div>
+        )}
       </div>
     </div>
   );

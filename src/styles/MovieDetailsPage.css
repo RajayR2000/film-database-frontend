@@ -102,4 +102,80 @@
   .gallery-image:hover {
     transform: scale(1.05);
   }
-  
+  /* MovieDetailsPage.css */
+
+.table-responsive {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.screenings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: inherit;
+  margin-bottom: 1rem;
+}
+
+.screenings-table th,
+.screenings-table td {
+  padding: 0.75rem 1rem;
+  border: 1px solid #444;
+  color: #f0f0f0;
+}
+
+.screenings-table th {
+  background-color: #333;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.screenings-table tr:nth-child(even) {
+  background-color: #2a2a2a;
+}
+
+.screenings-table a {
+  color: #d4af37;
+  text-decoration: none;
+}
+
+.screenings-table a:hover {
+  text-decoration: underline;
+}
+
+/* two‑column description list */
+.two-col-dl {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 0.5rem 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.two-col-dl dt {
+  font-weight: bold;
+  color: #d4af37;
+}
+
+.two-col-dl dd {
+  margin: 0;
+  color: #e0e0e0;
+}
+
+.dl-comment {
+  display: block;
+  font-style: italic;
+  color: #aaa;
+  margin-top: 0.25rem;
+}
+
+/* section headings */
+.grouped-dl-section {
+  margin-bottom: 1.5rem;
+}
+
+.grouped-dl-section h4 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #f0f0f0;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.2rem;
+}
