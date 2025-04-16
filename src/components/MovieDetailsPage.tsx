@@ -85,11 +85,125 @@ const tabLabels: Record<Tab, string> = {
   avLink: 'AV Annotate Link',
 };
 
+const targetEmail = 'ravikumr@iu.edu';
+
+const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [sections, setSections] = useState<Record<Tab, boolean>>({
+    synopsis: false,
+    filmProduction: false,
+    institution: false,
+    screening: false,
+    gallery: false,
+    avLink: false,
+  });
+  const [details, setDetails] = useState<Record<Tab, string>>({
+    synopsis: '',
+    filmProduction: '',
+    institution: '',
+    screening: '',
+    gallery: '',
+    avLink: '',
+  });
+
+  const toggleSection = (tab: Tab) => {
+    setSections((s) => ({ ...s, [tab]: !s[tab] }));
+  };
+
+  const handleSubmit = () => {
+    const chosen = (Object.keys(sections) as Tab[])
+      .filter((t) => sections[t])
+      .map((t) => `${tabLabels[t]}:\n${details[t] || '(no details provided)'}\n`)
+      .join('\n') || '(no sections selected)';
+
+    const body = `
+Movie: ${movieTitle}
+
+${chosen}
+
+Contributor Info:
+Name: ${name}
+Email: ${email}
+Designation: ${designation}
+    `;
+    const mailto =
+      `mailto:${targetEmail}` +
+      `?subject=${encodeURIComponent(`Contribution for ${movieTitle}`)}` +
+      `&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    onClose();
+  };
+
+  return (
+    <div className="contribute-overlay">
+      <div className="contribute-dialog wide">
+        <h2>Contribute Information</h2>
+        <div className="contribute-form">
+          <label>
+            Your Name
+            <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label>
+            Designation
+            <input value={designation} onChange={(e) => setDesignation(e.target.value)} />
+          </label>
+
+          <fieldset>
+            <legend>Which sections would you like to contribute to?</legend>
+            {(Object.keys(tabLabels) as Tab[]).map((tab) => (
+              <label key={tab} className="section-checkbox">
+                <input
+                  type="checkbox"
+                  checked={sections[tab]}
+                  onChange={() => toggleSection(tab)}
+                />
+                {tabLabels[tab]}
+              </label>
+            ))}
+          </fieldset>
+
+          {/* One textarea per checked section */}
+          { (Object.keys(sections) as Tab[]).map(
+            (tab) =>
+              sections[tab] && (
+                <label key={tab} className="section-detail">
+                  <strong>{tabLabels[tab]} details</strong>
+                  <textarea
+                    value={details[tab]}
+                    onChange={(e) =>
+                      setDetails((d) => ({ ...d, [tab]: e.target.value }))
+                    }
+                  />
+                </label>
+              )
+          )}
+
+          <div className="contribute-buttons">
+            <button className="btn-submit" onClick={handleSubmit}>
+              Submit
+            </button>
+            <button className="btn-cancel" onClick={onClose}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLoggedIn }) => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'>('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showContribute, setShowContribute] = useState(false);
+
   const navigate = useNavigate();
 
   const fetchMovieDetails = useCallback(async () => {
@@ -441,6 +555,13 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         <div className="hero-info">
           <h1 className="hero-title">{movie.title}</h1>
           <p className="hero-year">{movie.year}</p>
+          <button
+            className="contribute-button"
+            title="Have more info? Click to contribute!"
+            onClick={() => setShowContribute(true)}
+          >
+            Contribute
+          </button>
         </div>
       </div>
 
@@ -457,6 +578,12 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
       </div>
 
       <div className="tab-panel">{renderTabContent()}</div>
+      {showContribute && (
+        <ContributePopup
+          movieTitle={movie.title}
+          onClose={() => setShowContribute(false)}
+        />
+      )}
     </div>
   );
 };
