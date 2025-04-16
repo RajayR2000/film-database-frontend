@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/HomePage.css';
 import MovieCard from './MovieCard';
+import NotificationPopup from './NotificationPopup'; // Import the NotificationPopup component
 
 interface Movie {
   id: string;
@@ -10,11 +11,17 @@ interface Movie {
   director: string;
   genre: string;
 }
+
+interface Notification {
+  message: string;
+}
+
 const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('year');
   const [currentPage, setCurrentPage] = useState(1);
+  const [notification, setNotification] = useState<Notification | null>(null);
   const moviesPerPage = 12;
 
   useEffect(() => {
@@ -47,9 +54,16 @@ const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
   }, []);
 
   const handleExportCSV = async () => {
+    // First check using the isLoggedIn prop
+    if (!isLoggedIn) {
+      setNotification({ message: "You must be logged in to export data."});
+      return;
+    }
+    
+    // Also checking the token from local storage if needed
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      alert("You must be logged in to export data.");
+      setNotification({ message: "Authentication token missing. Please log in."});
       return;
     }
   
@@ -172,10 +186,9 @@ const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
       link.remove();
     } catch (err) {
       console.error(err);
-      alert("Failed to export CSV.");
+      setNotification({ message: "Failed to export CSV." });
     }
   };
-  
   
   // Filter movies based on search input
   const filteredMovies = movies.filter(movie =>
@@ -201,6 +214,13 @@ const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
 
   return (
     <div className="home-page">
+      {/* Display the NotificationPopup when there's a message */}
+      {notification && (
+        <NotificationPopup 
+          message={notification.message} 
+          onClose={() => setNotification(null)}
+        />
+      )}
       <div className="search-sort">
         <input 
           type="text" 
@@ -219,13 +239,17 @@ const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
           <option value="popularity">Popularity</option>
         </select> */}
         <button className="export-btn" onClick={handleExportCSV}>
-    Export as CSV
-  </button>
+          Export as CSV
+        </button>
       </div>
       <div className="movie-grid">
         {currentMovies.map(movie => (
-          <MovieCard key={movie.id} movie={movie}   isLoggedIn={isLoggedIn}
-          setIsLoggedIn={setIsLoggedIn}/>
+          <MovieCard 
+            key={movie.id} 
+            movie={movie} 
+            isLoggedIn={isLoggedIn}
+            setIsLoggedIn={setIsLoggedIn}
+          />
         ))}
       </div>
       <div className="pagination">

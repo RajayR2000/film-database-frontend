@@ -70,8 +70,6 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
-        <Route path="/admin/users" element={<AdminUsers />} />
-
         <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </Router>
