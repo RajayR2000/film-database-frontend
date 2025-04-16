@@ -59,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({
         </div>
         <ul className="navbar-menu">
           <li><Link to="/">Home</Link></li>
-          <li><Link to="/contact">Contact</Link></li>
+          {/* <li><Link to="/contact">Contact</Link></li> */}
           {isLoggedIn && userRole === 'admin' && (
             <li><Link to="/admin">Admin</Link></li>
           )}
