@@ -83,25 +83,30 @@ const HomePage: React.FC = () => {
           }
         });
   
-        const actors = (film.actors || [])
-          .map((a: any) => a.actor_name + (a.character_name ? ` as ${a.character_name}` : ""))
-          .join("; ");
-  
-        const equipment = (film.equipment || [])
-          .map((e: any) => e.equipment_name + (e.description ? ` (${e.description})` : ""))
-          .join("; ");
-  
-        const documents = (film.documents || [])
-          .map((d: any) => `${d.document_type}: ${d.file_url}`)
-          .join("; ");
-  
-        const institutions = (film.institutional_info || [])
-          .map((i: any) => `${i.production_company} / ${i.funding_company}`)
-          .join("; ");
-  
-        const screenings = (film.screenings || [])
-          .map((s: any) => `${s.screening_date} - ${s.organizers} (${s.format})`)
-          .join("; ");
+        const formatMultiline = (label: string, lines: string[]) => {
+          if (lines.length === 0) return `${label}:\n(none)`;
+          return `${label}:\n- ${lines.join("\n- ")}`;
+        };
+        
+        const actors = formatMultiline("Actors", (film.actors || []).map((a: any) =>
+          a.actor_name + (a.character_name ? ` as ${a.character_name}` : "")
+        ));
+        
+        const equipment = formatMultiline("Equipment", (film.equipment || []).map((e: any) =>
+          e.equipment_name + (e.description ? ` (${e.description})` : "")
+        ));
+        
+        const documents = formatMultiline("Documents", (film.documents || []).map((d: any) =>
+          `${d.document_type}: ${d.file_url}`
+        ));
+        
+        const institutions = formatMultiline("Institutions", (film.institutional_info || []).map((i: any) =>
+          `${i.production_company} / ${i.funding_company}`
+        ));
+        
+        const screenings = formatMultiline("Screenings", (film.screenings || []).map((s: any) =>
+          `${s.screening_date} - ${s.organizers} (${s.format})`
+        ));
   
         return {
           film_id: film.film_id,
@@ -111,6 +116,7 @@ const HomePage: React.FC = () => {
           synopsis: film.synopsis,
           created_at: film.created_at,
           updated_at: film.updated_at,
+          link: film.link,
   
           production_timeframe: film.production_timeframe,
           post_production_studio: film.post_production_studio,
@@ -132,14 +138,28 @@ const HomePage: React.FC = () => {
           screenings,
   
           ...authorMap,
-          ...teamMap
+          ...teamMap,
+          reference: film.reference
         };
       });
   
+      const headers = [
+        "film_id", "title", "release_year", "runtime", "synopsis", "link",
+        "production_timeframe", "post_production_studio", "production_comments",
+        "location_name", "location_address", "location_city", "location_state", "location_country",
+        "location_latitude", "location_longitude", "location_comment",
+        "actors", "equipment", "documents", "institutions", "screenings",
+        "screenwriter", "filmmaker", "executive_producer",
+        "image_technicians", "film_editor", "music_&_sound_designers",
+        "reference"
+      ];
+      
       const csv = [
-        Object.keys(flat[0]).join(","),
+        headers.join(","),
         ...flat.map((row: Record<string, any>) =>
-          Object.values(row).map(v => `"${(v || "").toString().replace(/"/g, '""')}"`).join(",")
+          headers.map(key =>
+            `"${(row[key] || "").toString().replace(/"/g, '""')}"`
+          ).join(",")
         )
       ].join("\n");
   
