@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './components/AdminDashboard';
 import Unauthorized from './components/Unauthorized';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminUsers from './components/AdminUsers';
 
 interface JwtPayload {
   role: string;
@@ -69,6 +70,8 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/admin/users" element={<AdminUsers />} />
+
         <Route path="/unauthorized" element={<Unauthorized />} />
       </Routes>
     </Router>
