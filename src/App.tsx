@@ -54,7 +54,7 @@ const App: React.FC = () => {
         userRole={userRole}
       />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}/>} />
         <Route path="/movie/:id" element={<MovieDetailsPage isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />} />
         <Route 
           path="/admin" 

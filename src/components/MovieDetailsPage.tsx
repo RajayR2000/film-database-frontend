@@ -153,12 +153,18 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
     fetchMovieDetails();
     navigate('/');
   };
-
+  const handleSuccessfulLogin = () => {
+    setShowLoginModal(false);
+    setIsLoggedIn(true);
+    fetchMovieDetails();
+    // Optionally, navigate to the current movie details route:
+    // navigate(`/movies/${id}`);
+  };
   if (!id) {
     return <div>Error: No movie ID provided</div>;
   }
   if (showLoginModal || !isLoggedIn) {
-    return <LoginModal onClose={handleLoginModalClose} />;
+    return <LoginModal onLoginSuccess={handleSuccessfulLogin}  onReturnHome={handleLoginModalClose} />;
   }
   if (!movie) return <div>Loading...</div>;
 

@@ -77,7 +77,7 @@ const Navbar: React.FC<NavbarProps> = ({
     
         </div>
       </nav>
-      {showLoginModal && <LoginModal onClose={handleModalClose} />}
+      {showLoginModal && <LoginModal onLoginSuccess={handleModalClose} onReturnHome={handleModalClose} />}
       {showNotification && (
         <NotificationPopup
           message="Successfully logged in!"

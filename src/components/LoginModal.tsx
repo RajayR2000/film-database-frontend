@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import '../styles/LoginModal.css';
 
 interface LoginModalProps {
-  onClose: () => void;
+  onLoginSuccess: () => void;
+  onReturnHome: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
       }
       const data = await res.json();
       localStorage.setItem('accessToken', data.access_token);
-      onClose(); // Close modal and let parent re-fetch data
+      onLoginSuccess(); // Invoke the separate callback for a successful login
     } catch (err: any) {
       setError(err.message);
     }
@@ -56,7 +57,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
         <button className="submit-button" onClick={handleLogin}>
           Login
         </button>
-        <button className="close-button" onClick={onClose}>
+        <button className="close-button" onClick={onReturnHome}>
           Return Home
         </button>
         <div className="additional-info">

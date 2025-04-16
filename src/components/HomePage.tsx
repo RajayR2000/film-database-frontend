@@ -10,8 +10,7 @@ interface Movie {
   director: string;
   genre: string;
 }
-
-const HomePage: React.FC = () => {
+const HomePage: React.FC<any> = ({ isLoggedIn, setIsLoggedIn }) => {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('year');
@@ -225,7 +224,8 @@ const HomePage: React.FC = () => {
       </div>
       <div className="movie-grid">
         {currentMovies.map(movie => (
-          <MovieCard key={movie.id} movie={movie} />
+          <MovieCard key={movie.id} movie={movie}   isLoggedIn={isLoggedIn}
+          setIsLoggedIn={setIsLoggedIn}/>
         ))}
       </div>
       <div className="pagination">
