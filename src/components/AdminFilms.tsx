@@ -80,6 +80,8 @@ export interface FilmFormData {
     institutional_country: string;
   };
   screenings: Screening[];
+  filmDocument?: File | null;
+
 }
 
 
@@ -141,6 +143,8 @@ const initialValues: FilmFormData = {
   imageFiles: [],
   wantsMoreImages: false,
   wantsPoster: false,
+  filmDocument: null,
+
 };
 
 // Yup validation schema.
@@ -682,6 +686,31 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
 </fieldset>
 
 
+<fieldset>
+  <legend>Upload Film Document</legend>
+
+  <div style={{ marginBottom: '10px' }}>
+    <label htmlFor="filmDocument">Upload PDF or DOC file:</label><br />
+    <input
+      type="file"
+      accept=".pdf,.doc,.docx"
+      onChange={(e) => {
+        const fileList = e.currentTarget.files;
+        if (fileList && fileList.length > 1) {
+          alert("Only one document can be uploaded.");
+          e.currentTarget.value = ""; // Reset
+        } else {
+          const file = fileList?.[0] || null;
+          setFieldValue("filmDocument", file); // ✅ assign the single File object
+        }
+      }}
+    />
+  </div>
+</fieldset>
+
+
+
+
       <button type="submit" className="btn-submit">
         Submit
       </button>
@@ -934,6 +963,33 @@ if (values.wantsMoreImages && Array.isArray(values.imageFiles) && values.imageFi
       body: formData,
     });
   }
+}
+
+// Upload Document
+try {
+  if (values.filmDocument) {
+    console.log("Attempting to upload document...");
+
+    const formData = new FormData();
+    console.log("→ Uploading to URL:", `http://localhost:3001/upload-document/${selectedFilmId}`);
+    console.log("→ selectedFilmId:", selectedFilmId);
+
+    formData.append('file', values.filmDocument);
+
+    const res = await fetch(`http://localhost:3001/upload-document/${selectedFilmId}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    console.log("Upload response:", res.status);
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("Upload failed:", err);
+    }
+  }
+} catch (uploadError) {
+  console.error("Exception during upload:", uploadError);
 }
 
 

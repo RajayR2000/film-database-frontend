@@ -74,7 +74,8 @@ type Tab =
   | 'institution' 
   | 'screening' 
   | 'gallery' 
-  | 'avLink';
+  | 'avLink'
+  | 'documents';
 
 const tabLabels: Record<Tab, string> = {
   synopsis: 'Synopsis',
@@ -83,6 +84,7 @@ const tabLabels: Record<Tab, string> = {
   screening: 'Film Screenings',
   gallery: 'Gallery',
   avLink: 'AV Annotate Link',
+  documents: 'Documents',
 };
 
 const targetEmail = 'ravikumr@iu.edu';
@@ -98,6 +100,7 @@ const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
     screening: false,
     gallery: false,
     avLink: false,
+    documents: false,
   });
   const [details, setDetails] = useState<Record<Tab, string>>({
     synopsis: '',
@@ -106,6 +109,7 @@ const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
     screening: '',
     gallery: '',
     avLink: '',
+    documents: '',
   });
 
   const toggleSection = (tab: Tab) => {
@@ -200,7 +204,7 @@ Designation: ${designation}
 const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLoggedIn }) => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
-  const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'>('synopsis');
+  const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'|'documents'>('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
   const [galleryPage, setGalleryPage] = useState(0);
@@ -560,6 +564,29 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
                 )}
               </div>
             );
+            case 'documents':
+              return (
+                <div className="tab-content">
+                  <h2>Film Document</h2>
+                  <iframe
+                    src={`http://localhost:3001/document/${movie.id}`}
+                    title="Film Document"
+                    width="100%"
+                    height="600px"
+                    style={{
+                      border: 'none',
+                      boxShadow: '0 0 8px rgba(0,0,0,0.3)',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <p style={{ marginTop: '10px' }}>
+                    <a href={`http://localhost:3001/document/${movie.id}`} target="_blank" rel="noopener noreferrer">
+                      Open in new tab ↗
+                    </a>
+                  </p>
+                </div>
+              );
+            
           
 
       case 'avLink':
