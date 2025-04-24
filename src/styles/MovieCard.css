@@ -15,7 +15,7 @@
   width: 100%;
   display: block;
   /* Change aspect ratio to 4/3 so height is reduced by about 50% compared to 2/3 */
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 2 / 3;
   object-fit: cover;
   transition: transform 0.3s ease;
   /* Remove the explicit height property */

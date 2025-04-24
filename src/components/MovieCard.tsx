@@ -47,7 +47,15 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
   return (
     <>
       <div className="movie-card" onClick={handleClick}>
-        <img src={movie_poster} alt={movie.title} className="movie-poster" />
+            <img
+        src={`http://localhost:3001/poster/${movie.id}`}
+        alt={movie.title}
+        className="movie-poster"
+        onError={(e) => {
+          e.currentTarget.src = movie_poster; // fallback to default
+        }}
+      />
+
         <div className="movie-overlay">
           <h3 className="movie-title">{movie.title}</h3>
           <p className="movie-year">{movie.year}</p>

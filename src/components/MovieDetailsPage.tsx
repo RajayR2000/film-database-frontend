@@ -203,6 +203,8 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'>('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
+  const [galleryPage, setGalleryPage] = useState(0);
+  const imagesPerPage = 3;
 
   const navigate = useNavigate();
 
@@ -230,7 +232,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
         id: data.film.film_id.toString(),
         title: data.film.title,
         year: data.film.release_year,
-        posterUrl: data.film.posterUrl || movie_poster,
+        posterUrl: `http://localhost:3001/poster/${data.film.film_id}` || movie_poster,
         synopsis: data.film.synopsis,
         production: {
           director: data.film.director || 'Unknown',
@@ -276,6 +278,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           screeningCountry: s.screening_country || '-',
         })),
       };
+
+      console.log("Gallery image srcs:", data.film.gallery);
+
 
       setMovie(fetchedMovie);
     } catch (error: any) {
@@ -521,16 +526,41 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           );
         
 
-      case 'gallery':
-        return (
-          <div className="tab-content gallery">
-            {movie.gallery.length ? (
-              movie.gallery.map((img, i) => (
-                <img key={i} src={img} alt={`Still ${i+1}`} className="gallery-image" />
-              ))
-            ) : <p>No gallery images available.</p>}
-          </div>
-        );
+          case 'gallery':
+            const totalPages = Math.ceil(movie.gallery.length / imagesPerPage);
+          
+            return (
+              <div className="tab-content gallery">
+                {movie.gallery.length > 0 ? (
+                  <>
+                    <div className="gallery-slider">
+                      {movie.gallery
+                        .slice(galleryPage * imagesPerPage, (galleryPage + 1) * imagesPerPage)
+                        .map((img, i) => (
+                          <img key={i} src={img} alt={`Gallery ${i}`} className="gallery-image-tile" />
+                        ))}
+                    </div>
+          
+                    <div className="gallery-nav">
+  {galleryPage > 0 && (
+    <button className="gallery-arrow left" onClick={() => setGalleryPage(prev => prev - 1)}>
+      ‹
+    </button>
+  )}
+
+  {(galleryPage + 1) * imagesPerPage < movie.gallery.length && (
+    <button className="gallery-arrow right" onClick={() => setGalleryPage(prev => prev + 1)}>
+      ›
+    </button>
+  )}
+</div>
+                  </>
+                ) : (
+                  <p>No gallery images available.</p>
+                )}
+              </div>
+            );
+          
 
       case 'avLink':
         return (
@@ -551,7 +581,15 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   return (
     <div className="movie-details-page">
       <div className="hero-section">
-        <img src={movie.posterUrl} alt={movie.title} className="hero-poster" />
+                  <img
+              src={movie.posterUrl}
+              alt={movie.title}
+              className="hero-poster"
+              onError={(e) => {
+                e.currentTarget.src = movie_poster; // fallback image
+              }}
+            />
+
         <div className="hero-info">
           <h1 className="hero-title">{movie.title}</h1>
           <p className="hero-year">{movie.year}</p>

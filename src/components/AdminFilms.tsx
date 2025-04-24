@@ -34,6 +34,11 @@ export interface FilmFormData {
   runtime: string;
   synopsis: string;
   av_annotate_link: string;
+  posterFile?: File | null;
+  imageFiles?: File[];
+  wantsMoreImages?: boolean;
+  wantsPoster?: boolean;
+
   productionDetails: {
     production_timeframe: string;
     shooting_city: string;
@@ -76,6 +81,8 @@ export interface FilmFormData {
   };
   screenings: Screening[];
 }
+
+
 
 // Interface for film list items (for update mode)
 interface FilmListItem {
@@ -130,6 +137,10 @@ const initialValues: FilmFormData = {
       source: '',
     },
   ],
+  posterFile: null,
+  imageFiles: [],
+  wantsMoreImages: false,
+  wantsPoster: false,
 };
 
 // Yup validation schema.
@@ -157,7 +168,12 @@ const validationSchema = Yup.object().shape({
 const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
   setIsDirty,
 }) => {
-  const { dirty, errors, touched, isSubmitting } =
+  const {  dirty,
+    errors,
+    touched,
+    isSubmitting,
+    values,
+    setFieldValue,} =
     useFormikContext<FilmFormData>();
 
   useEffect(() => {
@@ -600,7 +616,71 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
             </>
           )}
         </FieldArray>
-      </fieldset>
+        </fieldset>
+      
+        <fieldset>
+  <legend>Upload Media</legend>
+
+  {/* Gallery Row */}
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+    width: '100%',
+  }}>
+    <span style={{ flex: 1, whiteSpace: 'nowrap' }}>
+      Do you want to add more images to the gallery?
+    </span>
+    <Field type="checkbox" name="wantsMoreImages" id="wantsMoreImages" />
+  </div>
+
+  {values.wantsMoreImages && (
+    <div style={{ marginBottom: '15px' }}>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length > 10) {
+            alert("You can only upload up to 10 images.");
+            return;
+          }
+          setFieldValue("imageFiles", files);
+        }}
+      />
+      <p>{values.imageFiles?.length || 0}/10 images selected</p>
+    </div>
+  )}
+
+  {/* Poster Row */}
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+    width: '100%',
+  }}>
+    <span style={{ flex: 1, whiteSpace: 'nowrap' }}>
+      Do you want to upload a movie poster?
+    </span>
+    <Field type="checkbox" name="wantsPoster" id="wantsPoster" />
+  </div>
+
+  {values.wantsPoster && (
+    <div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) =>
+          setFieldValue("posterFile", e.currentTarget.files?.[0] || null)
+        }
+      />
+    </div>
+  )}
+</fieldset>
+
 
       <button type="submit" className="btn-submit">
         Submit
@@ -719,6 +799,10 @@ const AdminDashboard: React.FC = () => {
           film_rights: s.film_rights,
           comment: s.comment,
           source: s.source,
+          posterFile: null,
+      imageFiles: [],
+      wantsMoreImages: false,
+      wantsPoster: false,
         })),
       };
       setUpdateInitialValues(formData);
@@ -821,6 +905,39 @@ const AdminDashboard: React.FC = () => {
         },
         body: JSON.stringify(values),
       });
+      const filmData = await res.json(); // Ensure response returns { film_id }
+const filmId = filmData.film_id;
+
+// Upload Poster
+if (values.wantsPoster && values.posterFile) {
+  const formData = new FormData();
+  formData.append('file', values.posterFile);
+  formData.append('type', 'image');
+  formData.append('is_poster','true');
+  await fetch(`http://localhost:3001/upload-assets/${selectedFilmId}`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+// Upload Gallery Images
+if (values.wantsMoreImages && Array.isArray(values.imageFiles) && values.imageFiles.length > 0) {
+  console.log("Uploading gallery images...", values.imageFiles);
+  console.log("Printing film-id passed",filmId)
+  for (const image of values.imageFiles) {
+    const formData = new FormData();
+    formData.append('file', image);
+    formData.append('type', 'image');
+    formData.append('is_poster', 'false');
+    await fetch(`http://localhost:3001/upload-assets/${selectedFilmId}`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+}
+
+
+
       if (!res.ok) {
         const err = await res.json();
         setMessage(err.error||'Submission error');
@@ -878,7 +995,7 @@ const AdminDashboard: React.FC = () => {
                   onChange={e=>setSearchTerm(e.target.value)}
                   className="search-bar"
                 />
-                <ul className="films-list">
+                {/*<ul className="films-list">
                   {films
                     .filter(f=>f.title.toLowerCase().includes(searchTerm.toLowerCase()))
                     .map(f=>(
@@ -895,7 +1012,41 @@ const AdminDashboard: React.FC = () => {
                         </button>
                       </li>
                     ))}
-                </ul>
+                </ul>*/}
+                <ul className="films-list">
+                {films
+                  .filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map(f => (
+                    <li key={f.film_id}>
+                      {/* Poster image */}
+                      <img
+                        src={`http://localhost:3001/poster/${f.film_id}`}
+                        alt="Poster"
+                        onError={(e) => {
+                          e.currentTarget.src = '../assets/movie-poster.png';
+                        }}
+                        style={{
+                          width: '180px',
+                          height: 'auto',
+                          borderRadius: '6px',
+                          marginBottom: '10px',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <span>{f.title}</span>
+                      <button
+                        className="btn-edit"
+                        onClick={() => {
+                          setSelectedFilmId(f.film_id.toString());
+                          loadFilmData(f.film_id);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+
               </>
             ) : (
               renderForm(updateInitialValues, onUpdateSubmit, setIsDirty)
