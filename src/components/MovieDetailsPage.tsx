@@ -87,7 +87,7 @@ const tabLabels: Record<Tab, string> = {
   documents: 'Documents',
 };
 
-const targetEmail = 'ravikumr@iu.edu';
+const targetEmail = 'vbouchar@iu.edu';
 
 const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
   const [name, setName] = useState('');
