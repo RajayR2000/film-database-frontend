@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
-import movie_poster from '../assets/movie_poster.jpg';
+import { fetchMovieDetails as apiFetchMovieDetails } from '../api/client';
+import { ENDPOINTS } from '../api/endpoints';
 
 interface Actor {
   actorName: string;
@@ -212,85 +213,92 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
 
   const navigate = useNavigate();
 
-  const fetchMovieDetails = useCallback(async () => {
-    if (!id) return;
-    try {
-      const res = await fetch(`http://localhost:3001/films/${id}`, {
-        headers: {
-          Authorization: localStorage.getItem('accessToken')
-            ? `Bearer ${localStorage.getItem('accessToken')}`
-            : '-',
-        },
-      });
-      if (res.status === 401) {
-        setShowLoginModal(true);
-        setMovie(null);
-        return;
-      }
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await res.json();
 
-      const fetchedMovie: MovieDetails = {
-        id: data.film.film_id.toString(),
-        title: data.film.title,
-        year: data.film.release_year,
-        posterUrl: `http://localhost:3001/poster/${data.film.film_id}` || movie_poster,
-        synopsis: data.film.synopsis,
-        production: {
-          director: data.film.director || 'Unknown',
-          producer: data.film.producer || 'Unknown',
-          cast: (data.actors || []).map((a: any) => ({
-            actorName: a.actor_name,
-            characterName: a.character_name,
-            comment: a.comment,
-          })),
-          runtime: data.film.runtime || '-',
-        },
-        productionDetails: {
-          postProductionStudio: data.productionDetails?.post_production_studio || '-',
-          productionComments: data.productionDetails?.production_comments || '-',
-          productionTimeframe: data.productionDetails?.production_timeframe || '-',
-          shootingCity: data.productionDetails?.shooting_city || '-',
-          shootingCountry: data.productionDetails?.shooting_country || '-',
-        },
-        authors: data.authors || [],
-        productionTeam: data.productionTeam || [],
-        equipment: data.equipment || [],
-        institutionalInfo: {
-          productionCompany: data.institutionalInfo?.production_company || '-',
-          fundingCompany: data.institutionalInfo?.funding_company || '-',
-          fundingComment: data.institutionalInfo?.funding_comment || '-',
-          source: data.institutionalInfo?.source || '-',
-          institutional_city: data.institutionalInfo?.institutional_city || '-',
-          institutional_country: data.institutionalInfo?.institutional_country || '-',
-        },
-        documents: data.documents || [],
-        gallery: data.film.gallery || [],
-        av_annotate_link: data.film.av_annotate_link || 'No Links Available',
-        screenings: (data.screenings || []).map((s: any) => ({
-          screening_id: s.screening_id,
-          screening_date: s.screening_date,
-          organizers: s.organizers,
-          comment: s.comment,
-          source: s.source,
-          film_rights: s.film_rights,
-          format: s.format,
-          audience: s.audience,
-          screeningCity: s.screening_city || '-',
-          screeningCountry: s.screening_country || '-',
+// Then replace your existing fetchMovieDetails useCallback with:
+
+const fetchMovieDetails = useCallback(async () => {
+  if (!id) return;
+
+  try {
+    // call our client helper (throws on 401)
+    const {
+      film,
+      actors,
+      productionDetails,
+      authors,
+      productionTeam,
+      equipment,
+      institutionalInfo,
+      documents,
+      screenings
+    } = await apiFetchMovieDetails(
+      id,
+      localStorage.getItem('accessToken') || undefined
+    );
+
+    const fetchedMovie: MovieDetails = {
+      id: film.film_id.toString(),
+      title: film.title,
+      year: film.release_year,
+      posterUrl: ENDPOINTS.POSTER(film.film_id.toString()),
+      synopsis: film.synopsis,
+      production: {
+        director: film.director || 'Unknown',
+        producer: film.producer || 'Unknown',
+        cast: actors.map((a: any) => ({
+          actorName: a.actor_name,
+          characterName: a.character_name,
+          comment: a.comment,
         })),
-      };
+        runtime: film.runtime || '-',
+      },
+      productionDetails: {
+        postProductionStudio: productionDetails?.post_production_studio || '-',
+        productionComments: productionDetails?.production_comments || '-',
+        productionTimeframe: productionDetails?.production_timeframe || '-',
+        shootingCity: productionDetails?.shooting_city || '-',
+        shootingCountry: productionDetails?.shooting_country || '-',
+      },
+      authors,
+      productionTeam,
+      equipment,
+      institutionalInfo: {
+        productionCompany: institutionalInfo?.production_company || '-',
+        fundingCompany: institutionalInfo?.funding_company || '-',
+        fundingComment: institutionalInfo?.funding_comment || '-',
+        source: institutionalInfo?.source || '-',
+        institutional_city: institutionalInfo?.institutional_city || '-',
+        institutional_country: institutionalInfo?.institutional_country || '-',
+      },
+      documents,
+      gallery: film.gallery || [],
+      av_annotate_link: film.av_annotate_link || 'No Links Available',
+      screenings: screenings.map((s: any) => ({
+        screening_id: s.screening_id,
+        screening_date: s.screening_date,
+        organizers: s.organizers,
+        comment: s.comment,
+        source: s.source,
+        film_rights: s.film_rights,
+        format: s.format,
+        audience: s.audience,
+        screeningCity: s.screening_city || '-',
+        screeningCountry: s.screening_country || '-',
+      })),
+    };
 
-      console.log("Gallery image srcs:", data.film.gallery);
-
-
-      setMovie(fetchedMovie);
-    } catch (error: any) {
-      console.error('Error fetching film details:', error.message);
+    setMovie(fetchedMovie);
+  } catch (error: any) {
+    if (error.name === 'Unauthorized') {
+      // preserve your 401 logic
+      setShowLoginModal(true);
+      setMovie(null);
+      return;
     }
-  }, [id]);
+    console.error('Error fetching film details:', error);
+  }
+}, [id]);
+
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -569,7 +577,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
                 <div className="tab-content">
                   <h2>Film Document</h2>
                   <iframe
-                    src={`http://localhost:3001/document/${movie.id}`}
+                    src={ENDPOINTS.DOCUMENT(movie.id)}
                     title="Film Document"
                     width="100%"
                     height="600px"
@@ -580,7 +588,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
                     }}
                   />
                   <p style={{ marginTop: '10px' }}>
-                    <a href={`http://localhost:3001/document/${movie.id}`} target="_blank" rel="noopener noreferrer">
+                    <a href={ENDPOINTS.DOCUMENT(movie.id)} target="_blank" rel="noopener noreferrer">
                       Open in new tab ↗
                     </a>
                   </p>
@@ -612,9 +620,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
               src={movie.posterUrl}
               alt={movie.title}
               className="hero-poster"
-              onError={(e) => {
-                e.currentTarget.src = movie_poster; // fallback image
-              }}
+              // onError={(e) => {
+              //   e.currentTarget.src = movie_poster; // fallback image
+              // }}
             />
 
         <div className="hero-info">

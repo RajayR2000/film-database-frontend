@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/MovieCard.css';
 import movie_poster from '../assets/movie_poster.jpg';
 import LoginModal from './LoginModal';
+import { ENDPOINTS } from '../api/endpoints';
 
 interface Movie {
   id: string;
   title: string;
   year: number;
-  posterUrl: string;
 }
 
 interface MovieCardProps {
@@ -48,7 +48,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
     <>
       <div className="movie-card" onClick={handleClick}>
             <img
-        src={`http://localhost:3001/poster/${movie.id}`}
+        src={ENDPOINTS.POSTER(movie.id)}
         alt={movie.title}
         className="movie-poster"
         onError={(e) => {

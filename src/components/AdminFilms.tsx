@@ -13,6 +13,8 @@ import '../styles/AdminFilms.css';
 import NotificationPopup from './NotificationPopup';
 import { apiFetch } from '../apifetch';
 import ConfirmationDialog from './ConfirmationDialog';
+import { ENDPOINTS } from '../api/endpoints';
+import movie_poster from '../assets/movie_poster.jpg';
 
 // Interface for Screening objects.
 export interface Screening {
@@ -745,13 +747,12 @@ const AdminDashboard: React.FC = () => {
 
   const [films, setFilms] = useState<FilmListItem[]>([]);
   const [selectedFilmId, setSelectedFilmId] = useState<string>('');
-  const [updateInitialValues, setUpdateInitialValues] =
-    useState<FilmFormData | null>(null);
+  const [updateInitialValues, setUpdateInitialValues] = useState<FilmFormData | null>(null);
 
   // Load films list for update/delete
   const loadFilmsList = async () => {
     try {
-      const res = await apiFetch('http://localhost:3001/films', {
+      const res = await apiFetch(ENDPOINTS.FILMS, {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -772,7 +773,7 @@ const AdminDashboard: React.FC = () => {
   // Load single film data for update
   const loadFilmData = async (filmId: number) => {
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${filmId}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmId.toString()), {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -784,13 +785,20 @@ const AdminDashboard: React.FC = () => {
         return;
       }
       const data = await res.json();
-      // Map into FilmFormData shape, including city/country fields...
+
+      // map to FilmFormData...
       const formData: FilmFormData = {
         title: data.film.title,
-        release_year: data.film.release_year?.toString(),
+        release_year: data.film.release_year,
         runtime: data.film.runtime,
         synopsis: data.film.synopsis,
         av_annotate_link: data.film.av_annotate_link,
+        posterFile: null,
+        imageFiles: [],
+        wantsMoreImages: false,
+        wantsPoster: false,
+        filmDocument: null,
+
         productionDetails: {
           production_timeframe: data.productionDetails.production_timeframe,
           shooting_city: data.productionDetails.shooting_city,
@@ -799,15 +807,17 @@ const AdminDashboard: React.FC = () => {
           production_comments: data.productionDetails.production_comments,
         },
         authors: {
-          screenwriter: data.authors.find((a: any) => a.role==='Screenwriter')?.name || '',
-          screenwriter_comment: data.authors.find((a: any)=>a.role==='Screenwriter')?.comment || '',
-          filmmaker: data.authors.find((a: any)=>a.role==='Filmmaker')?.name || '',
-          filmmaker_comment: data.authors.find((a: any)=>a.role==='Filmmaker')?.comment || '',
-          executive_producer: data.authors.find((a: any)=>a.role==='Executive Producer')?.name || '',
-          executive_producer_comment: data.authors.find((a: any)=>a.role==='Executive Producer')?.comment || '',
+          screenwriter: data.authors.find((a:any)=>a.role==='Screenwriter')?.name||'',
+          screenwriter_comment: data.authors.find((a:any)=>a.role==='Screenwriter')?.comment||'',
+          filmmaker: data.authors.find((a:any)=>a.role==='Filmmaker')?.name||'',
+          filmmaker_comment: data.authors.find((a:any)=>a.role==='Filmmaker')?.comment||'',
+          executive_producer: data.authors.find((a:any)=>a.role==='Executive Producer')?.name||'',
+          executive_producer_comment: data.authors.find((a:any)=>a.role==='Executive Producer')?.comment||'',
         },
-        productionTeam: data.productionTeam.length ? data.productionTeam : [{ department:'',name:'',role:'',comment:'' }],
-        actors: data.actors.map((a: any)=>a.actor_name).join(', '),
+        productionTeam: data.productionTeam.length 
+          ? data.productionTeam 
+          : [{ department:'',name:'',role:'',comment:'' }],
+        actors: data.actors.map((a:any)=>a.actor_name).join(', '),
         equipment: data.equipment[0] || { equipment_name:'',description:'',comment:'' },
         documents: data.documents[0] || { document_type:'',file_url:'',comment:'' },
         institutionalInfo: {
@@ -818,8 +828,8 @@ const AdminDashboard: React.FC = () => {
           institutional_city: data.institutionalInfo.institutional_city,
           institutional_country: data.institutionalInfo.institutional_country,
         },
-        screenings: data.screenings.map((s: any) => ({
-          screening_date: new Date(s.screening_date).toISOString().substr(0,10),
+        screenings: data.screenings.map((s:any)=>({
+          screening_date: s.screening_date.split('T')[0],
           screening_city: s.screening_city,
           screening_country: s.screening_country,
           organizers: s.organizers,
@@ -828,15 +838,12 @@ const AdminDashboard: React.FC = () => {
           film_rights: s.film_rights,
           comment: s.comment,
           source: s.source,
-          posterFile: null,
-      imageFiles: [],
-      wantsMoreImages: false,
-      wantsPoster: false,
         })),
       };
+
       setUpdateInitialValues(formData);
     } catch (err: any) {
-      setMessage('Error loading film data: '+err.message);
+      setMessage('Error loading film data: ' + err.message);
     }
   };
 
@@ -844,7 +851,7 @@ const AdminDashboard: React.FC = () => {
   const doDelete = async () => {
     if (!filmIdToDelete) return;
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${filmIdToDelete}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmIdToDelete.toString()), {
         method: 'DELETE',
         headers: {
           Authorization: localStorage.getItem('accessToken')
@@ -859,14 +866,14 @@ const AdminDashboard: React.FC = () => {
         loadFilmsList();
       }
     } catch (err: any) {
-      setMessage('Error deleting film: '+err.message);
+      setMessage('Error deleting film: ' + err.message);
     } finally {
       setShowConfirm(false);
       setFilmIdToDelete(null);
     }
   };
 
-  // Unsaved changes warning
+  // Warn on unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -878,9 +885,9 @@ const AdminDashboard: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  // Load list on tab change
+  // Reload list on tab change
   useEffect(() => {
-    if (activeTab==='update' || activeTab==='delete') {
+    if (activeTab === 'update' || activeTab === 'delete') {
       loadFilmsList();
       setUpdateInitialValues(null);
     }
@@ -898,17 +905,17 @@ const AdminDashboard: React.FC = () => {
     actions: FormikHelpers<FilmFormData>
   ) => {
     try {
-      const res = await apiFetch('http://localhost:3001/films', {
+      const res = await apiFetch(ENDPOINTS.FILMS, {
         method: 'POST',
         headers: {
-          'Content-Type':'application/json',
-          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error||'Submission error');
+        setMessage(err.error || 'Submission error');
       } else {
         setMessage('Film added successfully!');
         actions.resetForm();
@@ -926,77 +933,56 @@ const AdminDashboard: React.FC = () => {
     actions: FormikHelpers<FilmFormData>
   ) => {
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${selectedFilmId}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(selectedFilmId), {
         method: 'PUT',
         headers: {
-          'Content-Type':'application/json',
-          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
-      const filmData = await res.json(); // Ensure response returns { film_id }
-const filmId = filmData.film_id;
+      const data = await res.json();
+      const filmId = data.film_id;
 
-// Upload Poster
-if (values.wantsPoster && values.posterFile) {
-  const formData = new FormData();
-  formData.append('file', values.posterFile);
-  formData.append('type', 'image');
-  formData.append('is_poster','true');
-  await fetch(`http://localhost:3001/upload-assets/${selectedFilmId}`, {
-    method: 'POST',
-    body: formData,
-  });
-}
+      // Upload Poster
+      if (values.wantsPoster && values.posterFile) {
+        const fd = new FormData();
+        fd.append('file', values.posterFile);
+        fd.append('type', 'image');
+        fd.append('is_poster', 'true');
+        await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId.toString()), {
+          method: 'POST',
+          body: fd,
+        });
+      }
 
-// Upload Gallery Images
-if (values.wantsMoreImages && Array.isArray(values.imageFiles) && values.imageFiles.length > 0) {
-  console.log("Uploading gallery images...", values.imageFiles);
-  console.log("Printing film-id passed",filmId)
-  for (const image of values.imageFiles) {
-    const formData = new FormData();
-    formData.append('file', image);
-    formData.append('type', 'image');
-    formData.append('is_poster', 'false');
-    await fetch(`http://localhost:3001/upload-assets/${selectedFilmId}`, {
-      method: 'POST',
-      body: formData,
-    });
-  }
-}
+      // Upload Gallery
+      if (values.wantsMoreImages && values.imageFiles?.length) {
+        for (const img of values.imageFiles) {
+          const fd = new FormData();
+          fd.append('file', img);
+          fd.append('type', 'image');
+          fd.append('is_poster', 'false');
+          await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId.toString()), {
+            method: 'POST',
+            body: fd,
+          });
+        }
+      }
 
-// Upload Document
-try {
-  if (values.filmDocument) {
-    console.log("Attempting to upload document...");
-
-    const formData = new FormData();
-    console.log("→ Uploading to URL:", `http://localhost:3001/upload-document/${selectedFilmId}`);
-    console.log("→ selectedFilmId:", selectedFilmId);
-
-    formData.append('file', values.filmDocument);
-
-    const res = await fetch(`http://localhost:3001/upload-document/${selectedFilmId}`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    console.log("Upload response:", res.status);
-
-    if (!res.ok) {
-      const err = await res.json();
-      console.error("Upload failed:", err);
-    }
-  }
-} catch (uploadError) {
-  console.error("Exception during upload:", uploadError);
-}
-
-
+      // Upload Document
+      if (values.filmDocument) {
+        const fd = new FormData();
+        fd.append('file', values.filmDocument);
+        await fetch(ENDPOINTS.UPLOAD_DOCUMENT(filmId.toString()), {
+          method: 'POST',
+          body: fd,
+        });
+      }
 
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error||'Submission error');
+        setMessage(err.error || 'Submission error');
       } else {
         setMessage('Film updated successfully!');
       }
@@ -1011,36 +997,32 @@ try {
     <div className="admin-dashboard">
       <div className="admin-tabs">
         <button
-          className={activeTab==='add'?'active':''}
-          onClick={()=>setActiveTab('add')}
+          className={activeTab === 'add' ? 'active' : ''}
+          onClick={() => setActiveTab('add')}
         >
           Add Film
         </button>
         <button
-          className={activeTab==='update'?'active':''}
-          onClick={()=>setActiveTab('update')}
+          className={activeTab === 'update' ? 'active' : ''}
+          onClick={() => setActiveTab('update')}
         >
           Update Film
         </button>
         <button
-          className={activeTab==='delete'?'active':''}
-          onClick={()=>setActiveTab('delete')}
+          className={activeTab === 'delete' ? 'active' : ''}
+          onClick={() => setActiveTab('delete')}
         >
           Delete Film
         </button>
       </div>
 
-      {message && (
-        <NotificationPopup
-          message={message}
-          onClose={()=>setMessage('')}
-        />
-      )}
+      {message && <NotificationPopup message={message} onClose={() => setMessage('')} />}
 
       <div className="admin-content">
-        {activeTab==='add' && renderForm(initialValues, onAddSubmit, setIsDirty)}
+        {activeTab === 'add' &&
+          renderForm(initialValues, onAddSubmit, setIsDirty)}
 
-        {activeTab==='update' && (
+        {activeTab === 'update' && (
           <div className="update-section">
             {!updateInitialValues ? (
               <>
@@ -1048,18 +1030,24 @@ try {
                   type="text"
                   placeholder="Search by movie title..."
                   value={searchTerm}
-                  onChange={e=>setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   className="search-bar"
                 />
-                {/*<ul className="films-list">
+                <ul className="films-list">
                   {films
-                    .filter(f=>f.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map(f=>(
+                    .filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(f => (
                       <li key={f.film_id}>
+                        <img
+                          src={ENDPOINTS.POSTER(f.film_id.toString())}
+                          alt={f.title}
+                          onError={e => { e.currentTarget.src = movie_poster; }}
+                          style={{ width: 180, borderRadius: 6, marginRight: 8 }}
+                        />
                         <span>{f.title}</span>
                         <button
                           className="btn-edit"
-                          onClick={()=>{
+                          onClick={() => {
                             setSelectedFilmId(f.film_id.toString());
                             loadFilmData(f.film_id);
                           }}
@@ -1068,41 +1056,7 @@ try {
                         </button>
                       </li>
                     ))}
-                </ul>*/}
-                <ul className="films-list">
-                {films
-                  .filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map(f => (
-                    <li key={f.film_id}>
-                      {/* Poster image */}
-                      <img
-                        src={`http://localhost:3001/poster/${f.film_id}`}
-                        alt="Poster"
-                        onError={(e) => {
-                          e.currentTarget.src = '../assets/movie-poster.png';
-                        }}
-                        style={{
-                          width: '180px',
-                          height: 'auto',
-                          borderRadius: '6px',
-                          marginBottom: '10px',
-                          objectFit: 'cover'
-                        }}
-                      />
-                      <span>{f.title}</span>
-                      <button
-                        className="btn-edit"
-                        onClick={() => {
-                          setSelectedFilmId(f.film_id.toString());
-                          loadFilmData(f.film_id);
-                        }}
-                      >
-                        Edit
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-
+                </ul>
               </>
             ) : (
               renderForm(updateInitialValues, onUpdateSubmit, setIsDirty)
@@ -1110,24 +1064,24 @@ try {
           </div>
         )}
 
-        {activeTab==='delete' && (
+        {activeTab === 'delete' && (
           <div className="delete-section">
             <input
               type="text"
               placeholder="Search by movie title..."
               value={deleteSearchTerm}
-              onChange={e=>setDeleteSearchTerm(e.target.value)}
+              onChange={e => setDeleteSearchTerm(e.target.value)}
               className="search-bar"
             />
             <ul className="films-list">
               {films
-                .filter(f=>f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
-                .map(f=>(
+                .filter(f => f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
+                .map(f => (
                   <li key={f.film_id}>
                     <span>{f.title}</span>
                     <button
                       className="btn-delete"
-                      onClick={()=>{
+                      onClick={() => {
                         setFilmIdToDelete(f.film_id);
                         setShowConfirm(true);
                       }}
@@ -1144,7 +1098,7 @@ try {
               confirmText="Yes, delete"
               cancelText="No, keep it"
               onConfirm={doDelete}
-              onCancel={()=>{
+              onCancel={() => {
                 setShowConfirm(false);
                 setFilmIdToDelete(null);
               }}
