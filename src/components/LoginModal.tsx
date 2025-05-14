@@ -58,7 +58,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         <div className="additional-info">
           <p>
             If you are not a member of EAC, please reach out to{' '}
-            <a href="mailto:<eac-lab-mail>@iu.edu">vbouchar@iu.edu</a> to get access.
+            <a href="mailto:<eac-lab-mail>@iu.edu">eac-lab-mail@iu.edu</a> to get access.
           </p>
         </div>
       </div>
