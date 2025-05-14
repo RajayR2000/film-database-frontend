@@ -1,10 +1,14 @@
+// src/components/AdminUsers.tsx
+
 import React, { useState, useEffect } from 'react';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import NotificationPopup from './NotificationPopup';
 import ConfirmationDialog from './ConfirmationDialog';
 import { apiFetch } from '../apifetch';
+import { ENDPOINTS } from '../api/endpoints';
 import '../styles/AdminUsers.css';
+import Loader from './Loader';
 
 interface User {
   user_id?: number;
@@ -54,10 +58,12 @@ const AdminUsers: React.FC = () => {
 
   // update/search state
   const [updateSearchTerm, setUpdateSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadUsers = async () => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch('http://localhost:3001/users', {
+      const res = await apiFetch(ENDPOINTS.USERS, {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -72,6 +78,8 @@ const AdminUsers: React.FC = () => {
       setUsers(data.users);
     } catch (err: any) {
       setMessage('Error loading users: ' + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,8 +95,9 @@ const AdminUsers: React.FC = () => {
 
   // --- Add user ---
   const onAddUserSubmit = async (vals: AddUserForm, actions: any) => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch('http://localhost:3001/users', {
+      const res = await apiFetch(ENDPOINTS.USERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,6 +118,7 @@ const AdminUsers: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -119,12 +129,10 @@ const AdminUsers: React.FC = () => {
       actions.setSubmitting(false);
       return;
     }
+    setIsLoading(true);
     try {
-      const payload = {
-        username: vals.username,
-        password: vals.newPassword,
-      };
-      const res = await apiFetch(`http://localhost:3001/users/${selectedUser.user_id}`, {
+      const payload = { username: vals.username, password: vals.newPassword };
+      const res = await apiFetch(ENDPOINTS.USER(selectedUser.user_id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -145,13 +153,15 @@ const AdminUsers: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   // --- Delete user ---
   const onDeleteUser = async (id: number) => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`http://localhost:3001/users/${id}`, {
+      const res = await apiFetch(ENDPOINTS.USER(id), {
         method: 'DELETE',
         headers: {
           Authorization: localStorage.getItem('accessToken')
@@ -167,6 +177,8 @@ const AdminUsers: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       setMessage('Error deleting user: ' + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -182,36 +194,56 @@ const AdminUsers: React.FC = () => {
 
   return (
     <div className="admin-dashboard">
+      {isLoading && <Loader />}
       <div className="admin-tabs">
-        <button className={activeUserTab==='add'? 'active':''} onClick={()=>setActiveUserTab('add')}>Add User</button>
-        <button className={activeUserTab==='update'? 'active':''} onClick={()=>setActiveUserTab('update')}>Update User</button>
-        <button className={activeUserTab==='delete'? 'active':''} onClick={()=>setActiveUserTab('delete')}>Delete User</button>
+        <button
+          className={activeUserTab === 'add' ? 'active' : ''}
+          onClick={() => setActiveUserTab('add')}
+        >
+          Add User
+        </button>
+        <button
+          className={activeUserTab === 'update' ? 'active' : ''}
+          onClick={() => setActiveUserTab('update')}
+        >
+          Update User
+        </button>
+        <button
+          className={activeUserTab === 'delete' ? 'active' : ''}
+          onClick={() => setActiveUserTab('delete')}
+        >
+          Delete User
+        </button>
       </div>
 
-      {message && <NotificationPopup message={message} onClose={()=>setMessage('')} />}
+      {message && <NotificationPopup message={message} onClose={() => setMessage('')} />}
 
       <div className="admin-content">
         {/* ADD */}
-        {activeUserTab==='add' && (
+        {activeUserTab === 'add' && (
           <Formik
             initialValues={initialAddValues}
             validationSchema={addUserSchema}
             onSubmit={onAddUserSubmit}
           >
-            {({ isSubmitting, errors, touched })=>(
+            {({ isSubmitting, errors, touched }) => (
               <Form className="admin-form">
                 <div>
                   <label>Username:</label>
                   <Field name="username" />
-                  {errors.username&&touched.username&&<div className="error">{errors.username}</div>}
+                  {errors.username && touched.username && (
+                    <div className="error">{errors.username}</div>
+                  )}
                 </div>
                 <div>
                   <label>Password:</label>
                   <Field name="password" type="password" />
-                  {errors.password&&touched.password&&<div className="error">{errors.password}</div>}
+                  {errors.password && touched.password && (
+                    <div className="error">{errors.password}</div>
+                  )}
                 </div>
                 <button className="btn-edit" type="submit" disabled={isSubmitting}>
-                  {isSubmitting?'Adding...':'Add User'}
+                  {isSubmitting ? 'Adding...' : 'Add User'}
                 </button>
               </Form>
             )}
@@ -219,7 +251,7 @@ const AdminUsers: React.FC = () => {
         )}
 
         {/* UPDATE */}
-        {activeUserTab==='update' && (
+        {activeUserTab === 'update' && (
           <>
             {!selectedUser ? (
               <>
@@ -227,16 +259,20 @@ const AdminUsers: React.FC = () => {
                   type="text"
                   placeholder="Search users..."
                   value={updateSearchTerm}
-                  onChange={e => setUpdateSearchTerm(e.target.value)}
+                  onChange={(e) => setUpdateSearchTerm(e.target.value)}
                   className="search-bar"
                 />
                 <ul className="users-list">
                   {users
-                    .filter(u => u.username.toLowerCase().includes(updateSearchTerm.toLowerCase()))
-                    .map(u=>(
+                    .filter((u) =>
+                      u.username.toLowerCase().includes(updateSearchTerm.toLowerCase())
+                    )
+                    .map((u) => (
                       <li key={u.user_id}>
                         <span>{u.username}</span>
-                        <button className="btn-edit" onClick={()=>setSelectedUser(u)}>Edit</button>
+                        <button className="btn-edit" onClick={() => setSelectedUser(u)}>
+                          Edit
+                        </button>
                       </li>
                     ))}
                 </ul>
@@ -251,27 +287,37 @@ const AdminUsers: React.FC = () => {
                 validationSchema={updateUserSchema}
                 onSubmit={onUpdateUserSubmit}
               >
-                {({ isSubmitting, errors, touched })=>(
+                {({ isSubmitting, errors, touched }) => (
                   <Form className="admin-form">
                     <div>
                       <label>Username:</label>
                       <Field name="username" />
-                      {errors.username&&touched.username&&<div className="error">{errors.username}</div>}
+                      {errors.username && touched.username && (
+                        <div className="error">{errors.username}</div>
+                      )}
                     </div>
                     <div>
                       <label>New Password:</label>
                       <Field name="newPassword" type="password" />
-                      {errors.newPassword&&touched.newPassword&&<div className="error">{errors.newPassword}</div>}
+                      {errors.newPassword && touched.newPassword && (
+                        <div className="error">{errors.newPassword}</div>
+                      )}
                     </div>
                     <div>
                       <label>Confirm New Password:</label>
                       <Field name="confirmNewPassword" type="password" />
-                      {errors.confirmNewPassword&&touched.confirmNewPassword&&<div className="error">{errors.confirmNewPassword}</div>}
+                      {errors.confirmNewPassword && touched.confirmNewPassword && (
+                        <div className="error">{errors.confirmNewPassword}</div>
+                      )}
                     </div>
                     <button className="btn-update" type="submit" disabled={isSubmitting}>
-                      {isSubmitting?'Updating...':'Update User'}
+                      {isSubmitting ? 'Updating...' : 'Update User'}
                     </button>
-                    <button className="btn-cancel" type="button" onClick={()=>setSelectedUser(null)}>
+                    <button
+                      className="btn-cancel"
+                      type="button"
+                      onClick={() => setSelectedUser(null)}
+                    >
                       Cancel
                     </button>
                   </Form>
@@ -282,22 +328,24 @@ const AdminUsers: React.FC = () => {
         )}
 
         {/* DELETE */}
-        {activeUserTab==='delete' && (
+        {activeUserTab === 'delete' && (
           <>
             <input
               type="text"
               placeholder="Search users..."
               value={deleteSearchTerm}
-              onChange={e=>setDeleteSearchTerm(e.target.value)}
+              onChange={(e) => setDeleteSearchTerm(e.target.value)}
               className="search-bar"
             />
             <ul className="users-list">
               {users
-                .filter(u=>u.username.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
-                .map(u=>(
+                .filter((u) =>
+                  u.username.toLowerCase().includes(deleteSearchTerm.toLowerCase())
+                )
+                .map((u) => (
                   <li key={u.user_id}>
                     <span>{u.username}</span>
-                    <button className="btn-delete" onClick={()=>handleDeleteClick(u.user_id!)}>
+                    <button className="btn-delete" onClick={() => handleDeleteClick(u.user_id!)}>
                       Delete
                     </button>
                   </li>
@@ -312,7 +360,7 @@ const AdminUsers: React.FC = () => {
           confirmText="Yes, delete"
           cancelText="No, keep"
           onConfirm={confirmDelete}
-          onCancel={()=>setShowDeleteConfirm(false)}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       </div>
     </div>

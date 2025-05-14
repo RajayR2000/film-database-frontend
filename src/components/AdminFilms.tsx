@@ -13,6 +13,9 @@ import '../styles/AdminFilms.css';
 import NotificationPopup from './NotificationPopup';
 import { apiFetch } from '../apifetch';
 import ConfirmationDialog from './ConfirmationDialog';
+import { ENDPOINTS } from '../api/endpoints';
+import movie_poster from '../assets/movie_poster.jpg';
+import Loader from './Loader';
 
 // Interface for Screening objects.
 export interface Screening {
@@ -34,6 +37,11 @@ export interface FilmFormData {
   runtime: string;
   synopsis: string;
   av_annotate_link: string;
+  posterFile?: File | null;
+  imageFiles?: File[];
+  wantsMoreImages?: boolean;
+  wantsPoster?: boolean;
+
   productionDetails: {
     production_timeframe: string;
     shooting_city: string;
@@ -75,7 +83,11 @@ export interface FilmFormData {
     institutional_country: string;
   };
   screenings: Screening[];
+  filmDocument?: File | null;
+
 }
+
+
 
 // Interface for film list items (for update mode)
 interface FilmListItem {
@@ -130,6 +142,12 @@ const initialValues: FilmFormData = {
       source: '',
     },
   ],
+  posterFile: null,
+  imageFiles: [],
+  wantsMoreImages: false,
+  wantsPoster: false,
+  filmDocument: null,
+
 };
 
 // Yup validation schema.
@@ -157,7 +175,12 @@ const validationSchema = Yup.object().shape({
 const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
   setIsDirty,
 }) => {
-  const { dirty, errors, touched, isSubmitting } =
+  const {  dirty,
+    errors,
+    touched,
+    isSubmitting,
+    values,
+    setFieldValue,} =
     useFormikContext<FilmFormData>();
 
   useEffect(() => {
@@ -600,7 +623,96 @@ const FormContent: React.FC<{ setIsDirty: (dirty: boolean) => void }> = ({
             </>
           )}
         </FieldArray>
-      </fieldset>
+        </fieldset>
+      
+        <fieldset>
+  <legend>Upload Media</legend>
+
+  {/* Gallery Row */}
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+    width: '100%',
+  }}>
+    <span style={{ flex: 1, whiteSpace: 'nowrap' }}>
+      Do you want to add more images to the gallery?
+    </span>
+    <Field type="checkbox" name="wantsMoreImages" id="wantsMoreImages" />
+  </div>
+
+  {values.wantsMoreImages && (
+    <div style={{ marginBottom: '15px' }}>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length > 10) {
+            alert("You can only upload up to 10 images.");
+            return;
+          }
+          setFieldValue("imageFiles", files);
+        }}
+      />
+      <p>{values.imageFiles?.length || 0}/10 images selected</p>
+    </div>
+  )}
+
+  {/* Poster Row */}
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+    width: '100%',
+  }}>
+    <span style={{ flex: 1, whiteSpace: 'nowrap' }}>
+      Do you want to upload a movie poster?
+    </span>
+    <Field type="checkbox" name="wantsPoster" id="wantsPoster" />
+  </div>
+
+  {values.wantsPoster && (
+    <div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) =>
+          setFieldValue("posterFile", e.currentTarget.files?.[0] || null)
+        }
+      />
+    </div>
+  )}
+</fieldset>
+
+
+<fieldset>
+  <legend>Upload Film Document</legend>
+
+  <div style={{ marginBottom: '10px' }}>
+    <label htmlFor="filmDocument">Upload PDF or DOC file:</label><br />
+    <input
+      type="file"
+      accept=".pdf,.doc,.docx"
+      onChange={(e) => {
+        const fileList = e.currentTarget.files;
+        if (fileList && fileList.length > 1) {
+          alert("Only one document can be uploaded.");
+          e.currentTarget.value = ""; // Reset
+        } else {
+          const file = fileList?.[0] || null;
+          setFieldValue("filmDocument", file); // ✅ assign the single File object
+        }
+      }}
+    />
+  </div>
+</fieldset>
+
+
+
 
       <button type="submit" className="btn-submit">
         Submit
@@ -633,16 +745,17 @@ const AdminDashboard: React.FC = () => {
   const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
   const [filmIdToDelete, setFilmIdToDelete] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [films, setFilms] = useState<FilmListItem[]>([]);
   const [selectedFilmId, setSelectedFilmId] = useState<string>('');
-  const [updateInitialValues, setUpdateInitialValues] =
-    useState<FilmFormData | null>(null);
+  const [updateInitialValues, setUpdateInitialValues] = useState<FilmFormData | null>(null);
 
   // Load films list for update/delete
   const loadFilmsList = async () => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch('http://localhost:3001/films', {
+      const res = await apiFetch(ENDPOINTS.FILMS, {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -658,12 +771,16 @@ const AdminDashboard: React.FC = () => {
     } catch (err: any) {
       setMessage('Error loading films: ' + err.message);
     }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   // Load single film data for update
   const loadFilmData = async (filmId: number) => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${filmId}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmId.toString()), {
         headers: {
           Authorization: localStorage.getItem('accessToken')
             ? `Bearer ${localStorage.getItem('accessToken')}`
@@ -675,13 +792,20 @@ const AdminDashboard: React.FC = () => {
         return;
       }
       const data = await res.json();
-      // Map into FilmFormData shape, including city/country fields...
+
+      // map to FilmFormData...
       const formData: FilmFormData = {
         title: data.film.title,
-        release_year: data.film.release_year?.toString(),
+        release_year: data.film.release_year,
         runtime: data.film.runtime,
         synopsis: data.film.synopsis,
         av_annotate_link: data.film.av_annotate_link,
+        posterFile: null,
+        imageFiles: [],
+        wantsMoreImages: false,
+        wantsPoster: false,
+        filmDocument: null,
+
         productionDetails: {
           production_timeframe: data.productionDetails.production_timeframe,
           shooting_city: data.productionDetails.shooting_city,
@@ -690,15 +814,17 @@ const AdminDashboard: React.FC = () => {
           production_comments: data.productionDetails.production_comments,
         },
         authors: {
-          screenwriter: data.authors.find((a: any) => a.role==='Screenwriter')?.name || '',
-          screenwriter_comment: data.authors.find((a: any)=>a.role==='Screenwriter')?.comment || '',
-          filmmaker: data.authors.find((a: any)=>a.role==='Filmmaker')?.name || '',
-          filmmaker_comment: data.authors.find((a: any)=>a.role==='Filmmaker')?.comment || '',
-          executive_producer: data.authors.find((a: any)=>a.role==='Executive Producer')?.name || '',
-          executive_producer_comment: data.authors.find((a: any)=>a.role==='Executive Producer')?.comment || '',
+          screenwriter: data.authors.find((a:any)=>a.role==='Screenwriter')?.name||'',
+          screenwriter_comment: data.authors.find((a:any)=>a.role==='Screenwriter')?.comment||'',
+          filmmaker: data.authors.find((a:any)=>a.role==='Filmmaker')?.name||'',
+          filmmaker_comment: data.authors.find((a:any)=>a.role==='Filmmaker')?.comment||'',
+          executive_producer: data.authors.find((a:any)=>a.role==='Executive Producer')?.name||'',
+          executive_producer_comment: data.authors.find((a:any)=>a.role==='Executive Producer')?.comment||'',
         },
-        productionTeam: data.productionTeam.length ? data.productionTeam : [{ department:'',name:'',role:'',comment:'' }],
-        actors: data.actors.map((a: any)=>a.actor_name).join(', '),
+        productionTeam: data.productionTeam.length 
+          ? data.productionTeam 
+          : [{ department:'',name:'',role:'',comment:'' }],
+        actors: data.actors.map((a:any)=>a.actor_name).join(', '),
         equipment: data.equipment[0] || { equipment_name:'',description:'',comment:'' },
         documents: data.documents[0] || { document_type:'',file_url:'',comment:'' },
         institutionalInfo: {
@@ -709,8 +835,8 @@ const AdminDashboard: React.FC = () => {
           institutional_city: data.institutionalInfo.institutional_city,
           institutional_country: data.institutionalInfo.institutional_country,
         },
-        screenings: data.screenings.map((s: any) => ({
-          screening_date: new Date(s.screening_date).toISOString().substr(0,10),
+        screenings: data.screenings.map((s:any)=>({
+          screening_date: s.screening_date.split('T')[0],
           screening_city: s.screening_city,
           screening_country: s.screening_country,
           organizers: s.organizers,
@@ -721,17 +847,22 @@ const AdminDashboard: React.FC = () => {
           source: s.source,
         })),
       };
+
       setUpdateInitialValues(formData);
     } catch (err: any) {
-      setMessage('Error loading film data: '+err.message);
+      setMessage('Error loading film data: ' + err.message);
+    }
+    finally {
+      setIsLoading(false);
     }
   };
 
   // Delete handler
   const doDelete = async () => {
     if (!filmIdToDelete) return;
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${filmIdToDelete}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmIdToDelete.toString()), {
         method: 'DELETE',
         headers: {
           Authorization: localStorage.getItem('accessToken')
@@ -746,14 +877,15 @@ const AdminDashboard: React.FC = () => {
         loadFilmsList();
       }
     } catch (err: any) {
-      setMessage('Error deleting film: '+err.message);
+      setMessage('Error deleting film: ' + err.message);
     } finally {
       setShowConfirm(false);
       setFilmIdToDelete(null);
+      setIsLoading(false);
     }
   };
 
-  // Unsaved changes warning
+  // Warn on unsaved changes
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -765,9 +897,9 @@ const AdminDashboard: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  // Load list on tab change
+  // Reload list on tab change
   useEffect(() => {
-    if (activeTab==='update' || activeTab==='delete') {
+    if (activeTab === 'update' || activeTab === 'delete') {
       loadFilmsList();
       setUpdateInitialValues(null);
     }
@@ -784,18 +916,19 @@ const AdminDashboard: React.FC = () => {
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
   ) => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch('http://localhost:3001/films', {
+      const res = await apiFetch(ENDPOINTS.FILMS, {
         method: 'POST',
         headers: {
-          'Content-Type':'application/json',
-          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error||'Submission error');
+        setMessage(err.error || 'Submission error');
       } else {
         setMessage('Film added successfully!');
         actions.resetForm();
@@ -804,6 +937,7 @@ const AdminDashboard: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -812,18 +946,58 @@ const AdminDashboard: React.FC = () => {
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
   ) => {
+    setIsLoading(true);
     try {
-      const res = await apiFetch(`http://localhost:3001/films/${selectedFilmId}`, {
+      const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(selectedFilmId), {
         method: 'PUT',
         headers: {
-          'Content-Type':'application/json',
-          Authorization:`Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify(values),
       });
+      const data = await res.json();
+      const filmId = data.film_id;
+
+      // Upload Poster
+      if (values.wantsPoster && values.posterFile) {
+        const fd = new FormData();
+        fd.append('file', values.posterFile);
+        fd.append('type', 'image');
+        fd.append('is_poster', 'true');
+        await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId.toString()), {
+          method: 'POST',
+          body: fd,
+        });
+      }
+
+      // Upload Gallery
+      if (values.wantsMoreImages && values.imageFiles?.length) {
+        for (const img of values.imageFiles) {
+          const fd = new FormData();
+          fd.append('file', img);
+          fd.append('type', 'image');
+          fd.append('is_poster', 'false');
+          await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId.toString()), {
+            method: 'POST',
+            body: fd,
+          });
+        }
+      }
+
+      // Upload Document
+      if (values.filmDocument) {
+        const fd = new FormData();
+        fd.append('file', values.filmDocument);
+        await fetch(ENDPOINTS.UPLOAD_DOCUMENT(filmId.toString()), {
+          method: 'POST',
+          body: fd,
+        });
+      }
+
       if (!res.ok) {
         const err = await res.json();
-        setMessage(err.error||'Submission error');
+        setMessage(err.error || 'Submission error');
       } else {
         setMessage('Film updated successfully!');
       }
@@ -831,43 +1005,41 @@ const AdminDashboard: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="admin-dashboard">
+      {isLoading && <Loader />}
       <div className="admin-tabs">
         <button
-          className={activeTab==='add'?'active':''}
-          onClick={()=>setActiveTab('add')}
+          className={activeTab === 'add' ? 'active' : ''}
+          onClick={() => setActiveTab('add')}
         >
           Add Film
         </button>
         <button
-          className={activeTab==='update'?'active':''}
-          onClick={()=>setActiveTab('update')}
+          className={activeTab === 'update' ? 'active' : ''}
+          onClick={() => setActiveTab('update')}
         >
           Update Film
         </button>
         <button
-          className={activeTab==='delete'?'active':''}
-          onClick={()=>setActiveTab('delete')}
+          className={activeTab === 'delete' ? 'active' : ''}
+          onClick={() => setActiveTab('delete')}
         >
           Delete Film
         </button>
       </div>
 
-      {message && (
-        <NotificationPopup
-          message={message}
-          onClose={()=>setMessage('')}
-        />
-      )}
+      {message && <NotificationPopup message={message} onClose={() => setMessage('')} />}
 
       <div className="admin-content">
-        {activeTab==='add' && renderForm(initialValues, onAddSubmit, setIsDirty)}
+        {activeTab === 'add' &&
+          renderForm(initialValues, onAddSubmit, setIsDirty)}
 
-        {activeTab==='update' && (
+        {activeTab === 'update' && (
           <div className="update-section">
             {!updateInitialValues ? (
               <>
@@ -875,18 +1047,24 @@ const AdminDashboard: React.FC = () => {
                   type="text"
                   placeholder="Search by movie title..."
                   value={searchTerm}
-                  onChange={e=>setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   className="search-bar"
                 />
                 <ul className="films-list">
                   {films
-                    .filter(f=>f.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map(f=>(
+                    .filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(f => (
                       <li key={f.film_id}>
+                        <img
+                          src={ENDPOINTS.POSTER(f.film_id.toString())}
+                          alt={f.title}
+                          onError={e => { e.currentTarget.src = movie_poster; }}
+                          style={{ width: 180, borderRadius: 6, marginRight: 8 }}
+                        />
                         <span>{f.title}</span>
                         <button
                           className="btn-edit"
-                          onClick={()=>{
+                          onClick={() => {
                             setSelectedFilmId(f.film_id.toString());
                             loadFilmData(f.film_id);
                           }}
@@ -903,24 +1081,24 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab==='delete' && (
+        {activeTab === 'delete' && (
           <div className="delete-section">
             <input
               type="text"
               placeholder="Search by movie title..."
               value={deleteSearchTerm}
-              onChange={e=>setDeleteSearchTerm(e.target.value)}
+              onChange={e => setDeleteSearchTerm(e.target.value)}
               className="search-bar"
             />
             <ul className="films-list">
               {films
-                .filter(f=>f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
-                .map(f=>(
+                .filter(f => f.title.toLowerCase().includes(deleteSearchTerm.toLowerCase()))
+                .map(f => (
                   <li key={f.film_id}>
                     <span>{f.title}</span>
                     <button
                       className="btn-delete"
-                      onClick={()=>{
+                      onClick={() => {
                         setFilmIdToDelete(f.film_id);
                         setShowConfirm(true);
                       }}
@@ -937,7 +1115,7 @@ const AdminDashboard: React.FC = () => {
               confirmText="Yes, delete"
               cancelText="No, keep it"
               onConfirm={doDelete}
-              onCancel={()=>{
+              onCancel={() => {
                 setShowConfirm(false);
                 setFilmIdToDelete(null);
               }}

@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
-import movie_poster from '../assets/movie_poster.jpg';
+import { fetchMovieDetails as apiFetchMovieDetails } from '../api/client';
+import { ENDPOINTS } from '../api/endpoints';
+import Loader from './Loader';
 
 interface Actor {
   actorName: string;
@@ -74,7 +76,8 @@ type Tab =
   | 'institution' 
   | 'screening' 
   | 'gallery' 
-  | 'avLink';
+  | 'avLink'
+  | 'documents';
 
 const tabLabels: Record<Tab, string> = {
   synopsis: 'Synopsis',
@@ -83,9 +86,10 @@ const tabLabels: Record<Tab, string> = {
   screening: 'Film Screenings',
   gallery: 'Gallery',
   avLink: 'AV Annotate Link',
+  documents: 'Documents',
 };
 
-const targetEmail = 'ravikumr@iu.edu';
+const targetEmail = 'vbouchar@iu.edu';
 
 const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
   const [name, setName] = useState('');
@@ -98,6 +102,7 @@ const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
     screening: false,
     gallery: false,
     avLink: false,
+    documents: false,
   });
   const [details, setDetails] = useState<Record<Tab, string>>({
     synopsis: '',
@@ -106,6 +111,7 @@ const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
     screening: '',
     gallery: '',
     avLink: '',
+    documents: '',
   });
 
   const toggleSection = (tab: Tab) => {
@@ -200,88 +206,105 @@ Designation: ${designation}
 const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLoggedIn }) => {
   const { id } = useParams<{ id: string }>();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
-  const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'>('synopsis');
+  const [activeTab, setActiveTab] = useState<'synopsis'|'filmProduction'|'institution'|'screening'|'gallery'|'avLink'|'documents'>('synopsis');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
+  const [galleryPage, setGalleryPage] = useState(0);
+  const imagesPerPage = 3;
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const fetchMovieDetails = useCallback(async () => {
-    if (!id) return;
-    try {
-      const res = await fetch(`http://localhost:3001/films/${id}`, {
-        headers: {
-          Authorization: localStorage.getItem('accessToken')
-            ? `Bearer ${localStorage.getItem('accessToken')}`
-            : '-',
-        },
-      });
-      if (res.status === 401) {
-        setShowLoginModal(true);
-        setMovie(null);
-        return;
-      }
-      if (!res.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await res.json();
 
-      const fetchedMovie: MovieDetails = {
-        id: data.film.film_id.toString(),
-        title: data.film.title,
-        year: data.film.release_year,
-        posterUrl: data.film.posterUrl || movie_poster,
-        synopsis: data.film.synopsis,
-        production: {
-          director: data.film.director || 'Unknown',
-          producer: data.film.producer || 'Unknown',
-          cast: (data.actors || []).map((a: any) => ({
-            actorName: a.actor_name,
-            characterName: a.character_name,
-            comment: a.comment,
-          })),
-          runtime: data.film.runtime || '-',
-        },
-        productionDetails: {
-          postProductionStudio: data.productionDetails?.post_production_studio || '-',
-          productionComments: data.productionDetails?.production_comments || '-',
-          productionTimeframe: data.productionDetails?.production_timeframe || '-',
-          shootingCity: data.productionDetails?.shooting_city || '-',
-          shootingCountry: data.productionDetails?.shooting_country || '-',
-        },
-        authors: data.authors || [],
-        productionTeam: data.productionTeam || [],
-        equipment: data.equipment || [],
-        institutionalInfo: {
-          productionCompany: data.institutionalInfo?.production_company || '-',
-          fundingCompany: data.institutionalInfo?.funding_company || '-',
-          fundingComment: data.institutionalInfo?.funding_comment || '-',
-          source: data.institutionalInfo?.source || '-',
-          institutional_city: data.institutionalInfo?.institutional_city || '-',
-          institutional_country: data.institutionalInfo?.institutional_country || '-',
-        },
-        documents: data.documents || [],
-        gallery: data.film.gallery || [],
-        av_annotate_link: data.film.av_annotate_link || 'No Links Available',
-        screenings: (data.screenings || []).map((s: any) => ({
-          screening_id: s.screening_id,
-          screening_date: s.screening_date,
-          organizers: s.organizers,
-          comment: s.comment,
-          source: s.source,
-          film_rights: s.film_rights,
-          format: s.format,
-          audience: s.audience,
-          screeningCity: s.screening_city || '-',
-          screeningCountry: s.screening_country || '-',
+// Then replace your existing fetchMovieDetails useCallback with:
+
+const fetchMovieDetails = useCallback(async () => {
+  if (!id) return;
+
+  setIsLoading(true);
+  try {
+    // call our client helper (throws on 401)
+    const {
+      film,
+      actors,
+      productionDetails,
+      authors,
+      productionTeam,
+      equipment,
+      institutionalInfo,
+      documents,
+      screenings
+    } = await apiFetchMovieDetails(
+      id,
+      localStorage.getItem('accessToken') || undefined
+    );
+
+    const fetchedMovie: MovieDetails = {
+      id: film.film_id.toString(),
+      title: film.title,
+      year: film.release_year,
+      posterUrl: ENDPOINTS.POSTER(film.film_id.toString()),
+      synopsis: film.synopsis,
+      production: {
+        director: film.director || 'Unknown',
+        producer: film.producer || 'Unknown',
+        cast: actors.map((a: any) => ({
+          actorName: a.actor_name,
+          characterName: a.character_name,
+          comment: a.comment,
         })),
-      };
+        runtime: film.runtime || '-',
+      },
+      productionDetails: {
+        postProductionStudio: productionDetails?.post_production_studio || '-',
+        productionComments: productionDetails?.production_comments || '-',
+        productionTimeframe: productionDetails?.production_timeframe || '-',
+        shootingCity: productionDetails?.shooting_city || '-',
+        shootingCountry: productionDetails?.shooting_country || '-',
+      },
+      authors,
+      productionTeam,
+      equipment,
+      institutionalInfo: {
+        productionCompany: institutionalInfo?.production_company || '-',
+        fundingCompany: institutionalInfo?.funding_company || '-',
+        fundingComment: institutionalInfo?.funding_comment || '-',
+        source: institutionalInfo?.source || '-',
+        institutional_city: institutionalInfo?.institutional_city || '-',
+        institutional_country: institutionalInfo?.institutional_country || '-',
+      },
+      documents,
+      gallery: film.gallery || [],
+      av_annotate_link: film.av_annotate_link || 'No Links Available',
+      screenings: screenings.map((s: any) => ({
+        screening_id: s.screening_id,
+        screening_date: s.screening_date,
+        organizers: s.organizers,
+        comment: s.comment,
+        source: s.source,
+        film_rights: s.film_rights,
+        format: s.format,
+        audience: s.audience,
+        screeningCity: s.screening_city || '-',
+        screeningCountry: s.screening_country || '-',
+      })),
+    };
 
-      setMovie(fetchedMovie);
-    } catch (error: any) {
-      console.error('Error fetching film details:', error.message);
+    setMovie(fetchedMovie);
+  } catch (error: any) {
+    if (error.name === 'Unauthorized') {
+      // preserve your 401 logic
+      setShowLoginModal(true);
+      setMovie(null);
+      return;
     }
-  }, [id]);
+    console.error('Error fetching film details:', error);
+  }
+  finally {
+    setIsLoading(false);
+  }
+}, [id]);
+
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -307,6 +330,9 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   }
   if (showLoginModal || !isLoggedIn) {
     return <LoginModal onLoginSuccess={handleSuccessfulLogin} onReturnHome={handleLoginModalClose} />;
+  }
+  if (!movie && isLoading) {
+    return <Loader />;
   }
   if (!movie) {
     return <div>Loading...</div>;
@@ -521,16 +547,64 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
           );
         
 
-      case 'gallery':
-        return (
-          <div className="tab-content gallery">
-            {movie.gallery.length ? (
-              movie.gallery.map((img, i) => (
-                <img key={i} src={img} alt={`Still ${i+1}`} className="gallery-image" />
-              ))
-            ) : <p>No gallery images available.</p>}
-          </div>
-        );
+          case 'gallery':
+            const totalPages = Math.ceil(movie.gallery.length / imagesPerPage);
+          
+            return (
+              <div className="tab-content gallery">
+                {movie.gallery.length > 0 ? (
+                  <>
+                    <div className="gallery-slider">
+                      {movie.gallery
+                        .slice(galleryPage * imagesPerPage, (galleryPage + 1) * imagesPerPage)
+                        .map((img, i) => (
+                          <img key={i} src={img} alt={`Gallery ${i}`} className="gallery-image-tile" />
+                        ))}
+                    </div>
+          
+                    <div className="gallery-nav">
+  {galleryPage > 0 && (
+    <button className="gallery-arrow left" onClick={() => setGalleryPage(prev => prev - 1)}>
+      ‹
+    </button>
+  )}
+
+  {(galleryPage + 1) * imagesPerPage < movie.gallery.length && (
+    <button className="gallery-arrow right" onClick={() => setGalleryPage(prev => prev + 1)}>
+      ›
+    </button>
+  )}
+</div>
+                  </>
+                ) : (
+                  <p>No gallery images available.</p>
+                )}
+              </div>
+            );
+            case 'documents':
+              return (
+                <div className="tab-content">
+                  <h2>Film Document</h2>
+                  <iframe
+                    src={ENDPOINTS.DOCUMENT(movie.id)}
+                    title="Film Document"
+                    width="100%"
+                    height="600px"
+                    style={{
+                      border: 'none',
+                      boxShadow: '0 0 8px rgba(0,0,0,0.3)',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <p style={{ marginTop: '10px' }}>
+                    <a href={ENDPOINTS.DOCUMENT(movie.id)} target="_blank" rel="noopener noreferrer">
+                      Open in new tab ↗
+                    </a>
+                  </p>
+                </div>
+              );
+            
+          
 
       case 'avLink':
         return (
@@ -551,7 +625,15 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   return (
     <div className="movie-details-page">
       <div className="hero-section">
-        <img src={movie.posterUrl} alt={movie.title} className="hero-poster" />
+                  <img
+              src={movie.posterUrl}
+              alt={movie.title}
+              className="hero-poster"
+              // onError={(e) => {
+              //   e.currentTarget.src = movie_poster; // fallback image
+              // }}
+            />
+
         <div className="hero-info">
           <h1 className="hero-title">{movie.title}</h1>
           <p className="hero-year">{movie.year}</p>

@@ -86,22 +86,60 @@
     margin: 0.5rem 0;
   }
   
-  .gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
+  .gallery-slider {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 10px;
+    transition: transform 0.3s ease-in-out;
   }
   
-  .gallery-image {
-    width: 100%;
-    border-radius: 5px;
+  .gallery-image-tile {
+    width: 300px;  /* ⬅️ make them bigger */
+    height: auto;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+  }
+  
+  .gallery-image-tile:hover {
+    transform: scale(1.03);
+  }
+  
+  .gallery-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    position: relative;
+  }
+  
+  .gallery-arrow {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: white;
     cursor: pointer;
-    transition: transform 0.3s ease;
+    position: absolute;
+    top: 40%;
+    z-index: 2;
+    transition: transform 0.2s;
   }
   
-  .gallery-image:hover {
-    transform: scale(1.05);
+  .gallery-arrow:hover {
+    transform: scale(1.3);
   }
+  
+  .gallery-arrow.left {
+    left: -40px;
+  }
+  
+  .gallery-arrow.right {
+    right: -40px;
+  }
+  
+  
   /* MovieDetailsPage.css */
 
 .table-responsive {

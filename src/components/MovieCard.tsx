@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/MovieCard.css';
 import movie_poster from '../assets/movie_poster.jpg';
 import LoginModal from './LoginModal';
+import { ENDPOINTS } from '../api/endpoints';
 
 interface Movie {
   id: string;
   title: string;
   year: number;
-  posterUrl: string;
 }
 
 interface MovieCardProps {
@@ -47,7 +47,15 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
   return (
     <>
       <div className="movie-card" onClick={handleClick}>
-        <img src={movie_poster} alt={movie.title} className="movie-poster" />
+            <img
+        src={ENDPOINTS.POSTER(movie.id)}
+        alt={movie.title}
+        className="movie-poster"
+        onError={(e) => {
+          e.currentTarget.src = movie_poster; // fallback to default
+        }}
+      />
+
         <div className="movie-overlay">
           <h3 className="movie-title">{movie.title}</h3>
           <p className="movie-year">{movie.year}</p>

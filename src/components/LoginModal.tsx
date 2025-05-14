@@ -1,5 +1,8 @@
+// src/components/LoginModal.tsx
+
 import React, { useState } from 'react';
 import '../styles/LoginModal.css';
+import { login as apiLogin } from '../api/client';
 
 interface LoginModalProps {
   onLoginSuccess: () => void;
@@ -13,19 +16,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
 
   const handleLogin = async () => {
     try {
-      const res = await fetch('http://localhost:3001/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!res.ok) {
-        throw new Error('Invalid credentials');
-      }
-      const data = await res.json();
+      const data = await apiLogin(username, password);
       localStorage.setItem('accessToken', data.access_token);
-      onLoginSuccess(); // Invoke the separate callback for a successful login
+      onLoginSuccess();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Login failed');
     }
   };
 
@@ -37,8 +32,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         <div className="form-group">
           <label htmlFor="username">Username:</label>
           <input
-            type="text"
             id="username"
+            type="text"
             placeholder="Enter your username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -47,8 +42,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         <div className="form-group">
           <label htmlFor="password">Password:</label>
           <input
-            type="password"
             id="password"
+            type="password"
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -63,7 +58,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         <div className="additional-info">
           <p>
             If you are not a member of EAC, please reach out to{' '}
-            <a href="mailto:your-email@example.com">vbouchar@iu.edu</a> to get access.
+            <a href="mailto:vbouchar@iu.edu">vbouchar@iu.edu</a> to get access.
           </p>
         </div>
       </div>

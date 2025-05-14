@@ -324,3 +324,15 @@
 .btn-cancel:hover {
   background-color: #444;
 }
+/* Description below the tabs */
+.admin-description {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #444;
+  color: #f0f0f0;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
