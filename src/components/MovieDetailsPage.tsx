@@ -89,7 +89,7 @@ const tabLabels: Record<Tab, string> = {
   documents: 'Documents',
 };
 
-const targetEmail = '<eac-lab-mail>@iu.edu';
+const targetEmail = process.env.REACT_APP_EAC_LAB_EMAIL;
 
 const ContributePopup: React.FC<any> = ({ movieTitle, onClose }) => {
   const [name, setName] = useState('');

@@ -13,6 +13,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const labEmail = process.env.REACT_APP_EAC_LAB_EMAIL;
 
   const handleLogin = async () => {
     try {
@@ -57,8 +58,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         </button>
         <div className="additional-info">
           <p>
-            If you are not a member of EAC, please reach out to{' '}
-            <a href="mailto:<eac-lab-mail>@iu.edu">eac-lab-mail@iu.edu</a> to get access.
+            If you are not a member of EAC, please reach out to&nbsp;
+            <a href={`mailto:${labEmail}`}>
+              {labEmail}
+            </a>
+              &nbsp;to get access.
           </p>
         </div>
       </div>
