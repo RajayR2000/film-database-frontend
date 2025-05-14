@@ -5,6 +5,7 @@ import '../styles/HomePage.css';
 import MovieCard from './MovieCard';
 import NotificationPopup from './NotificationPopup';
 import { fetchMovies, fetchFullFilms } from '../api/client';
+import Loader from './Loader';
 
 interface Movie {
   id: string;
@@ -28,8 +29,10 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState<Notification | null>(null);
   const moviesPerPage = 12;
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchMovies()
       .then((data) => {
         const fetched: Movie[] = data.films.map((film: any) => ({
@@ -44,6 +47,9 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
       .catch((err) => {
         console.error('Error fetching films:', err);
         setNotification({ message: 'Failed to load movies.' });
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -58,6 +64,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
       return;
     }
 
+    setIsLoading(true);
     try {
       const data = await fetchFullFilms(token);
       const flat = data.films.map((film: any) => {
@@ -141,6 +148,8 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
     } catch (err) {
       console.error('Export failed:', err);
       setNotification({ message: 'Failed to export CSV.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -163,6 +172,7 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
 
   return (
     <div className="home-page">
+      {isLoading && <Loader />}
       {notification && (
         <NotificationPopup message={notification.message} onClose={() => setNotification(null)} />
       )}

@@ -4,6 +4,7 @@ import '../styles/MovieDetailsPage.css';
 import LoginModal from './LoginModal';
 import { fetchMovieDetails as apiFetchMovieDetails } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
+import Loader from './Loader';
 
 interface Actor {
   actorName: string;
@@ -210,6 +211,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   const [showContribute, setShowContribute] = useState(false);
   const [galleryPage, setGalleryPage] = useState(0);
   const imagesPerPage = 3;
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -219,6 +221,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
 const fetchMovieDetails = useCallback(async () => {
   if (!id) return;
 
+  setIsLoading(true);
   try {
     // call our client helper (throws on 401)
     const {
@@ -297,6 +300,9 @@ const fetchMovieDetails = useCallback(async () => {
     }
     console.error('Error fetching film details:', error);
   }
+  finally {
+    setIsLoading(false);
+  }
 }, [id]);
 
 
@@ -324,6 +330,9 @@ const fetchMovieDetails = useCallback(async () => {
   }
   if (showLoginModal || !isLoggedIn) {
     return <LoginModal onLoginSuccess={handleSuccessfulLogin} onReturnHome={handleLoginModalClose} />;
+  }
+  if (!movie && isLoading) {
+    return <Loader />;
   }
   if (!movie) {
     return <div>Loading...</div>;

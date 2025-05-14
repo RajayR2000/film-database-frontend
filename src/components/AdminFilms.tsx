@@ -15,6 +15,7 @@ import { apiFetch } from '../apifetch';
 import ConfirmationDialog from './ConfirmationDialog';
 import { ENDPOINTS } from '../api/endpoints';
 import movie_poster from '../assets/movie_poster.jpg';
+import Loader from './Loader';
 
 // Interface for Screening objects.
 export interface Screening {
@@ -744,6 +745,7 @@ const AdminDashboard: React.FC = () => {
   const [deleteSearchTerm, setDeleteSearchTerm] = useState('');
   const [filmIdToDelete, setFilmIdToDelete] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [films, setFilms] = useState<FilmListItem[]>([]);
   const [selectedFilmId, setSelectedFilmId] = useState<string>('');
@@ -751,6 +753,7 @@ const AdminDashboard: React.FC = () => {
 
   // Load films list for update/delete
   const loadFilmsList = async () => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.FILMS, {
         headers: {
@@ -768,10 +771,14 @@ const AdminDashboard: React.FC = () => {
     } catch (err: any) {
       setMessage('Error loading films: ' + err.message);
     }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   // Load single film data for update
   const loadFilmData = async (filmId: number) => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmId.toString()), {
         headers: {
@@ -845,11 +852,15 @@ const AdminDashboard: React.FC = () => {
     } catch (err: any) {
       setMessage('Error loading film data: ' + err.message);
     }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete handler
   const doDelete = async () => {
     if (!filmIdToDelete) return;
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(filmIdToDelete.toString()), {
         method: 'DELETE',
@@ -870,6 +881,7 @@ const AdminDashboard: React.FC = () => {
     } finally {
       setShowConfirm(false);
       setFilmIdToDelete(null);
+      setIsLoading(false);
     }
   };
 
@@ -904,6 +916,7 @@ const AdminDashboard: React.FC = () => {
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
   ) => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.FILMS, {
         method: 'POST',
@@ -924,6 +937,7 @@ const AdminDashboard: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -932,6 +946,7 @@ const AdminDashboard: React.FC = () => {
     values: FilmFormData,
     actions: FormikHelpers<FilmFormData>
   ) => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.MOVIE_DETAILS(selectedFilmId), {
         method: 'PUT',
@@ -990,11 +1005,13 @@ const AdminDashboard: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="admin-dashboard">
+      {isLoading && <Loader />}
       <div className="admin-tabs">
         <button
           className={activeTab === 'add' ? 'active' : ''}

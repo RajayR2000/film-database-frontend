@@ -8,6 +8,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import { apiFetch } from '../apifetch';
 import { ENDPOINTS } from '../api/endpoints';
 import '../styles/AdminUsers.css';
+import Loader from './Loader';
 
 interface User {
   user_id?: number;
@@ -57,8 +58,10 @@ const AdminUsers: React.FC = () => {
 
   // update/search state
   const [updateSearchTerm, setUpdateSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadUsers = async () => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.USERS, {
         headers: {
@@ -75,6 +78,8 @@ const AdminUsers: React.FC = () => {
       setUsers(data.users);
     } catch (err: any) {
       setMessage('Error loading users: ' + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,6 +95,7 @@ const AdminUsers: React.FC = () => {
 
   // --- Add user ---
   const onAddUserSubmit = async (vals: AddUserForm, actions: any) => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.USERS, {
         method: 'POST',
@@ -112,6 +118,7 @@ const AdminUsers: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -122,6 +129,7 @@ const AdminUsers: React.FC = () => {
       actions.setSubmitting(false);
       return;
     }
+    setIsLoading(true);
     try {
       const payload = { username: vals.username, password: vals.newPassword };
       const res = await apiFetch(ENDPOINTS.USER(selectedUser.user_id), {
@@ -145,11 +153,13 @@ const AdminUsers: React.FC = () => {
       setMessage(err.message);
     } finally {
       actions.setSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   // --- Delete user ---
   const onDeleteUser = async (id: number) => {
+    setIsLoading(true);
     try {
       const res = await apiFetch(ENDPOINTS.USER(id), {
         method: 'DELETE',
@@ -167,6 +177,8 @@ const AdminUsers: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       setMessage('Error deleting user: ' + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -182,6 +194,7 @@ const AdminUsers: React.FC = () => {
 
   return (
     <div className="admin-dashboard">
+      {isLoading && <Loader />}
       <div className="admin-tabs">
         <button
           className={activeUserTab === 'add' ? 'active' : ''}
