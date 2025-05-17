@@ -133,23 +133,6 @@ export async function deleteFilm(id: string): Promise<void> {
 
 // --- Asset uploads ---
 
-export async function uploadAsset(
-  filmId: string,
-  file: File,
-  isPoster: boolean
-): Promise<void> {
-  const form = new FormData();
-  form.append('file', file);
-  form.append('type', 'image');
-  form.append('is_poster', String(isPoster));
-  const res = await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId), {
-    method: 'POST',
-    body: form,
-    headers: authHeader(),
-  });
-  if (!res.ok) throw new Error('Asset upload failed');
-}
-
 export async function uploadDocument(
   filmId: string,
   file: File

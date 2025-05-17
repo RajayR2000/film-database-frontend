@@ -48,7 +48,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
     <>
       <div className="movie-card" onClick={handleClick}>
             <img
-        src={ENDPOINTS.POSTER(movie.id)}
+        src={ENDPOINTS.FILM_POSTER(movie.id)}
         alt={movie.title}
         className="movie-poster"
         onError={(e) => {

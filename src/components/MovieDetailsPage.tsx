@@ -243,7 +243,7 @@ const fetchMovieDetails = useCallback(async () => {
       id: film.film_id.toString(),
       title: film.title,
       year: film.release_year,
-      posterUrl: ENDPOINTS.POSTER(film.film_id.toString()),
+      posterUrl: ENDPOINTS.FILM_POSTER(film.film_id.toString()),
       synopsis: film.synopsis,
       production: {
         director: film.director || 'Unknown',
