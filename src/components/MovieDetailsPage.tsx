@@ -5,6 +5,7 @@ import LoginModal from './LoginModal';
 import { fetchMovieDetails as apiFetchMovieDetails } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import Loader from './Loader';
+import movie_poster from '../assets/movie_poster.jpg';
 
 interface Actor {
   actorName: string;
@@ -668,7 +669,7 @@ const fetchMovieDetails = useCallback(async () => {
     <div className="movie-details-page">
       <div className="hero-section">
                   <img
-              src={movie.posterUrl}
+              src={movie.posterUrl || movie_poster}
               alt={movie.title}
               className="hero-poster"
               // onError={(e) => {
