@@ -60,7 +60,7 @@ interface MovieDetails {
   equipment: { equipment_name: string; description?: string; comment?: string }[];
   institutionalInfo: InstitutionalInfo;
   documents: { document_type: string; file_url: string; comment?: string }[];
-  gallery: string[];
+  gallery: any[];
   av_annotate_link: string;
   screenings: Screening[];
 }
@@ -214,6 +214,7 @@ const MovieDetailsPage: React.FC<MovieDetailsPageProps> = ({ isLoggedIn, setIsLo
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+  const [activeDoc, setActiveDoc] = useState<number | null>(null)
 
 
 // Then replace your existing fetchMovieDetails useCallback with:
@@ -233,17 +234,18 @@ const fetchMovieDetails = useCallback(async () => {
       equipment,
       institutionalInfo,
       documents,
-      screenings
+      screenings,
+      gallery,
+      poster,
     } = await apiFetchMovieDetails(
       id,
       localStorage.getItem('accessToken') || undefined
     );
-
     const fetchedMovie: MovieDetails = {
       id: film.film_id.toString(),
       title: film.title,
       year: film.release_year,
-      posterUrl: ENDPOINTS.POSTER(film.film_id.toString()),
+      posterUrl:poster?.url || '',
       synopsis: film.synopsis,
       production: {
         director: film.director || 'Unknown',
@@ -274,7 +276,7 @@ const fetchMovieDetails = useCallback(async () => {
         institutional_country: institutionalInfo?.institutional_country || '-',
       },
       documents,
-      gallery: film.gallery || [],
+      gallery: gallery || [],
       av_annotate_link: film.av_annotate_link || 'No Links Available',
       screenings: screenings.map((s: any) => ({
         screening_id: s.screening_id,
@@ -339,6 +341,7 @@ const fetchMovieDetails = useCallback(async () => {
   }
 
   const renderTabContent = () => {
+
     switch (activeTab) {
       case 'synopsis':
         return <div className="tab-content"><p>{movie.synopsis}</p></div>;
@@ -547,64 +550,103 @@ const fetchMovieDetails = useCallback(async () => {
           );
         
 
-          case 'gallery':
+           // inside MovieDetailsPage.tsx (or wherever you render tabs)
+          case 'gallery': {
             const totalPages = Math.ceil(movie.gallery.length / imagesPerPage);
-          
+
             return (
               <div className="tab-content gallery">
                 {movie.gallery.length > 0 ? (
                   <>
-                    <div className="gallery-slider">
+                    <div className="gallery-grid">
                       {movie.gallery
                         .slice(galleryPage * imagesPerPage, (galleryPage + 1) * imagesPerPage)
-                        .map((img, i) => (
-                          <img key={i} src={img} alt={`Gallery ${i}`} className="gallery-image-tile" />
+                        .map((img) => (
+                          <div key={img.imageId} className="gallery-item">
+                            <img
+                              src={img.url}
+                              alt={img.filename}
+                              className="gallery-image"
+                            />
+                            <div className="gallery-caption">{img.filename}</div>
+                          </div>
                         ))}
                     </div>
-          
-                    <div className="gallery-nav">
-  {galleryPage > 0 && (
-    <button className="gallery-arrow left" onClick={() => setGalleryPage(prev => prev - 1)}>
-      ‹
-    </button>
-  )}
 
-  {(galleryPage + 1) * imagesPerPage < movie.gallery.length && (
-    <button className="gallery-arrow right" onClick={() => setGalleryPage(prev => prev + 1)}>
-      ›
-    </button>
-  )}
-</div>
+                    <div className="gallery-nav">
+                      {galleryPage > 0 && (
+                        <button
+                          className="gallery-arrow left"
+                          onClick={() => setGalleryPage((p) => p - 1)}
+                        >
+                          ‹
+                        </button>
+                      )}
+                      {galleryPage + 1 < totalPages && (
+                        <button
+                          className="gallery-arrow right"
+                          onClick={() => setGalleryPage((p) => p + 1)}
+                        >
+                          ›
+                        </button>
+                      )}
+                    </div>
                   </>
                 ) : (
-                  <p>No gallery images available.</p>
+                  <p className="no-gallery">No gallery images available.</p>
                 )}
               </div>
             );
-            case 'documents':
-              return (
-                <div className="tab-content">
-                  <h2>Film Document</h2>
-                  <iframe
-                    src={ENDPOINTS.DOCUMENT(movie.id)}
-                    title="Film Document"
-                    width="100%"
-                    height="600px"
-                    style={{
-                      border: 'none',
-                      boxShadow: '0 0 8px rgba(0,0,0,0.3)',
-                      borderRadius: '6px'
-                    }}
-                  />
-                  <p style={{ marginTop: '10px' }}>
-                    <a href={ENDPOINTS.DOCUMENT(movie.id)} target="_blank" rel="noopener noreferrer">
-                      Open in new tab ↗
-                    </a>
-                  </p>
-                </div>
-              );
-            
-          
+          }
+          case 'documents': {
+            return (
+              <div className="tab-content documents-tab">
+                {movie.documents.length > 0 ? (
+                  movie.documents.map((doc: any) => (
+                    <div key={doc.documentId} className="doc-card">
+                      <div className="doc-card-header">
+                        <span className="doc-icon">
+                          {doc.contentType === 'application/pdf' ? '📄' : '📁'}
+                        </span>
+                        <span className="doc-filename">{doc.filename}</span>
+                        <div className="doc-actions">
+                          <button
+                            className="btn-view"
+                            onClick={() =>
+                              setActiveDoc(activeDoc === doc.documentId ? null : doc.documentId)
+                            }
+                          >
+                            {activeDoc === doc.documentId ? 'Hide' : 'View'}
+                          </button>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-download"
+                          >
+                            Download ↗
+                          </a>
+                        </div>
+                      </div>
+
+                      {activeDoc === doc.documentId && (
+                        <div className="doc-iframe-wrapper">
+                          <iframe
+                            src={doc.url}
+                            title={doc.filename}
+                            className="doc-iframe"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="no-document">No documents available.</p>
+                )}
+              </div>
+            )
+          }
+
 
       case 'avLink':
         return (

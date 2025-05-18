@@ -127,6 +127,7 @@
 .btn-edit,
 .btn-delete,
 .btn-confirm,
+.btn-attach,
 .btn-cancel {
   border-radius: 5px;
   cursor: pointer;
@@ -189,6 +190,20 @@
 }
 
 .btn-edit:hover {
+  background-color: #c39d34;
+}
+
+.btn-attach {
+  background-color: #d4af37;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+  color: #222;
+  margin-right: 0.5rem;
+  margin-left:0rem;
+}
+
+.btn-attach:hover {
   background-color: #c39d34;
 }
 
@@ -323,4 +338,9 @@
 
 .btn-cancel:hover {
   background-color: #444;
+}
+.btn-group {
+  display: inline-flex;
+  gap: 0.5rem;  /* adjust to taste: 0.5rem = ~8px, you can go down to 0.25rem */
+  margin-left: auto; /* push the group to the right if you want */
 }

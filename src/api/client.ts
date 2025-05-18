@@ -104,7 +104,7 @@ export async function deleteUser(id: number): Promise<void> {
 // --- Films CRUD ---
 
 export async function addFilm(data: any): Promise<any> {
-  const res = await fetch(ENDPOINTS.FILMS, {
+  const res = await fetch(ENDPOINTS.MOVIES_LIST, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(data),
@@ -132,23 +132,6 @@ export async function deleteFilm(id: string): Promise<void> {
 }
 
 // --- Asset uploads ---
-
-export async function uploadAsset(
-  filmId: string,
-  file: File,
-  isPoster: boolean
-): Promise<void> {
-  const form = new FormData();
-  form.append('file', file);
-  form.append('type', 'image');
-  form.append('is_poster', String(isPoster));
-  const res = await fetch(ENDPOINTS.UPLOAD_ASSETS(filmId), {
-    method: 'POST',
-    body: form,
-    headers: authHeader(),
-  });
-  if (!res.ok) throw new Error('Asset upload failed');
-}
 
 export async function uploadDocument(
   filmId: string,
