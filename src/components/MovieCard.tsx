@@ -9,6 +9,7 @@ interface Movie {
   id: string;
   title: string;
   year: number;
+  posterUrl: string;
 }
 
 interface MovieCardProps {
@@ -48,7 +49,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, isLoggedIn, setIsLoggedIn 
     <>
       <div className="movie-card" onClick={handleClick}>
             <img
-        src={ENDPOINTS.FILM_POSTER(movie.id)}
+        src={movie?.posterUrl || movie_poster }
         alt={movie.title}
         className="movie-poster"
         onError={(e) => {

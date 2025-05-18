@@ -214,23 +214,6 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
         </div>
       </fieldset>
 
-      {/* Documents */}
-      <fieldset>
-        <legend>Film Documents</legend>
-        <div>
-          <label htmlFor="documents.document_type">Document Type:</label>
-          <Field name="documents.document_type" type="text" />
-        </div>
-        <div>
-          <label htmlFor="documents.file_url">File URL:</label>
-          <Field name="documents.file_url" type="text" />
-        </div>
-        <div>
-          <label htmlFor="documents.comment">Comment:</label>
-          <Field name="documents.comment" as="textarea" />
-        </div>
-      </fieldset>
-
       {/* Institutional & Financial Info */}
       <fieldset>
         <legend>Institutional & Financial Information</legend>
@@ -396,31 +379,6 @@ const FormContentInternal: React.FC<{ setIsDirty: (dirty: boolean) => void }> = 
             </>
           )}
         </FieldArray>
-      </fieldset>
-
-
-
-      <fieldset>
-        <legend>Upload Film Document</legend>
-        <div style={{ marginBottom: '10px' }}>
-          <label htmlFor="filmDocument">Upload PDF or DOC file:</label>
-          <br />
-          <input
-            id="filmDocument" // Added id for label association
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => {
-              const fileList = e.currentTarget.files;
-              if (fileList && fileList.length > 1) {
-                alert('Only one document can be uploaded.');
-                e.currentTarget.value = ''; // Reset
-              } else {
-                const file = fileList?.[0] || null;
-                setFieldValue('filmDocument', file);
-              }
-            }}
-          />
-        </div>
       </fieldset>
 
       <button type="submit" className="btn-submit" disabled={isSubmitting}>

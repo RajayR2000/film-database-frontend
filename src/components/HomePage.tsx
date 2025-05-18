@@ -6,6 +6,7 @@ import MovieCard from './MovieCard';
 import NotificationPopup from './NotificationPopup';
 import { fetchMovies, fetchFullFilms } from '../api/client';
 import Loader from './Loader';
+import movie_poster from '../assets/movie_poster.jpg';
 
 interface Movie {
   id: string;
@@ -13,6 +14,7 @@ interface Movie {
   year: number;
   director: string;
   genre: string;
+  posterUrl: string;
 }
 
 interface Notification {
@@ -41,7 +43,8 @@ const HomePage: React.FC<{ isLoggedIn: boolean; setIsLoggedIn: (v: boolean) => v
           year: film.release_year,
           director: film.director || 'Unknown Director',
           genre: film.genre || 'Drama',
-        }));
+          posterUrl: film.posterUrl || ''
+                }));
         setMovies(fetched);
       })
       .catch((err) => {

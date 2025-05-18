@@ -104,7 +104,7 @@ export async function deleteUser(id: number): Promise<void> {
 // --- Films CRUD ---
 
 export async function addFilm(data: any): Promise<any> {
-  const res = await fetch(ENDPOINTS.FILMS, {
+  const res = await fetch(ENDPOINTS.MOVIES_LIST, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(data),

@@ -376,4 +376,153 @@
   .btn-cancel:hover {
     background: #444;
   }
-  
+  /* Gallery grid & items */
+.tab-content.gallery .gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gallery-item {
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gallery-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.8);
+}
+
+.gallery-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-caption {
+  padding: 0.5rem;
+  text-align: center;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  background: #2a2a2a;
+}
+
+/* Navigation arrows */
+.gallery-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.gallery-arrow {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #d4af37;
+  cursor: pointer;
+  padding: 0 1rem;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.gallery-arrow:hover {
+  color: #fff;
+  transform: scale(1.2);
+}
+
+/* “No images” placeholder */
+.no-gallery {
+  color: #aaa;
+  text-align: center;
+  font-style: italic;
+  padding: 2rem 0;
+}
+/* Documents tab wrapper */
+.documents-tab {
+  background: #222;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Card for each document */
+.doc-card {
+  background: #1e1e1e;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.doc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+}
+
+/* Header row */
+.doc-card-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #2a2a2a;
+}
+.doc-icon {
+  font-size: 1.5rem;
+  color: #d4af37;
+}
+.doc-filename {
+  flex: 1;
+  margin: 0 1rem;
+  color: #f0f0f0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* View & download buttons */
+.doc-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.btn-view,
+.btn-download {
+  background: #d4af37;
+  color: #222;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.btn-view:hover,
+.btn-download:hover {
+  background: #c39d34;
+}
+
+/* Iframe preview */
+.doc-iframe-wrapper {
+  border-top: 1px solid #444;
+  background: #000;
+}
+.doc-iframe {
+  width: 100%;
+  height: 500px;
+  border: none;
+  display: block;
+}
+
+/* No-document state */
+.no-document {
+  color: #aaa;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
+}
