@@ -15,6 +15,9 @@ const AddAttachments: React.FC<AddAttachmentsProps> = ({ filmId, onBack }) => (
     <button className="btn-back" onClick={onBack}>
       ← Back to Details
     </button>
+    <div className="info-note">
+      ℹ️ Currently max upload size is <strong>8 KB</strong>. We’re working on increasing this limit.  
+    </div>
     <section className="attachment-section poster-section">
       <PosterForm filmId={filmId} />
     </section>
