@@ -58,7 +58,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onReturnHome })
         </button>
         <div className="additional-info">
           <p>
-            If you are not a member of EAC, please reach out to&nbsp;
+            If you are not a member of the EAC lab, please reach out to&nbsp;
             <a href={`mailto:${labEmail}`}>
               {labEmail}
             </a>
